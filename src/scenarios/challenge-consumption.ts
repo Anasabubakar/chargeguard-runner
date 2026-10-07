@@ -53,7 +53,8 @@ export const challengeConsumption: Scenario = {
 
     // Expired challenge, on a worker with a short lifetime. Pull mode is used here whatever the scenario mode:
     // a credential costs nothing to build, and "no broadcast happened" shows the refusal came before settlement.
-    const lapseSeconds = ctx.env.stub ? 2 : 8;
+    // Testnet needs a longer lifetime: a transaction whose maxTime is a few seconds away can be refused as txTooLate before it is included.
+    const lapseSeconds = ctx.env.stub ? 2 : 20;
     const c = await ctx.startWorker("worker-c", { ttlSeconds: lapseSeconds });
     const expiring = await ctx.attempt(c, `challenge from worker-c (${lapseSeconds} second lifetime)`);
     const lapsed = await ctx.payer("pull").createCredential(expiring.response!);

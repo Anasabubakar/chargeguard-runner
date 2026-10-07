@@ -180,11 +180,11 @@ export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promis
         return undefined;
       }
       if (faults.send === "error") {
-        sendLog.push({ at, hash, outcome: "ERROR" });
+        sendLog.push({ at, hash, outcome: "ERROR", resultCode: "txFailed" });
         return { status: "ERROR", hash, latestLedger: ledger, latestLedgerCloseTime: String(Math.floor(Date.now() / 1000)), errorResultXdr: resultXdr("failed") };
       }
       const outcome = applySend(tx, hash, transaction, at);
-      sendLog.push({ at, hash, outcome });
+      sendLog.push({ at, hash, outcome, ...(outcome === "ERROR" ? { resultCode: "txBadSeq" } : {}) });
       if (outcome === "PENDING" && onSend) await onSend(hash);
       if (outcome === "ERROR") {
         return { status: "ERROR", hash, latestLedger: ledger, latestLedgerCloseTime: String(Math.floor(Date.now() / 1000)), errorResultXdr: resultXdr("badSeq") };

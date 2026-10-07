@@ -12,6 +12,8 @@ export interface SendLogEntry {
   hash: string;
   /** What the node answered to sendTransaction. DROPPED: the connection was cut before an answer. */
   outcome: "PENDING" | "DUPLICATE" | "ERROR" | "DROPPED" | "UNKNOWN";
+  /** For ERROR: the transaction result code the node gave (for example txBadSeq), when it could be decoded. */
+  resultCode?: string;
 }
 
 /**

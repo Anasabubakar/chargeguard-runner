@@ -1,5 +1,5 @@
 import { createServer } from "node:https";
-import { FeeBumpTransaction, Networks, TransactionBuilder } from "@stellar/stellar-sdk";
+import { FeeBumpTransaction, Networks, TransactionBuilder, xdr } from "@stellar/stellar-sdk";
 import type { Chain, ChainObservation, SendLogEntry } from "./chain.ts";
 import { createTestCert, trustCert } from "./tls.ts";
 
@@ -39,13 +39,16 @@ export async function startTestnetTap(upstream: string = TESTNET_RPC): Promise<C
         const text = await upstreamResponse.text();
         if (sentHash) {
           let outcome: SendLogEntry["outcome"] = "UNKNOWN";
+          let resultCode: string | undefined;
           try {
-            const status = (JSON.parse(text) as { result?: { status?: string } }).result?.status;
+            const result = (JSON.parse(text) as { result?: { status?: string; errorResultXdr?: string } }).result;
+            const status = result?.status;
             if (status === "PENDING" || status === "DUPLICATE" || status === "ERROR") outcome = status;
+            if (status === "ERROR" && result?.errorResultXdr) resultCode = xdr.TransactionResult.fromXDR(result.errorResultXdr, "base64").result().switch().name;
           } catch {
             /* keep UNKNOWN */
           }
-          sendLog.push({ at: new Date().toISOString(), hash: sentHash, outcome });
+          sendLog.push({ at: new Date().toISOString(), hash: sentHash, outcome, ...(resultCode ? { resultCode } : {}) });
         }
         res.writeHead(upstreamResponse.status, { "content-type": "application/json" }).end(text);
       } catch (error) {

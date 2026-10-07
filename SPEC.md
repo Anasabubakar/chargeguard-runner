@@ -45,7 +45,7 @@ Replay protection decides the first level; the other three show its cost.
 | restart-persistence | a credential consumed before a SIGKILL restart stays consumed | store x mode |
 | storage-unavailable | locked or removed store: 503, no acceptance, no broadcast, no fallback; no store configuration: refuse to start | mode |
 | challenge-consumption | a challenge is accepted at most once; forged and lapsed challenges are refused | store x mode |
-| ambiguous-settlement | unresolved settlement is not delivered, not re-broadcast, and reported by level | unconfirmed-then-lands, broadcast-rejected, onchain-failed, store-fault-after-broadcast, verification-rpc-outage |
+| ambiguous-settlement | unresolved settlement is not delivered, not re-broadcast, and reported by level | unconfirmed-then-lands, broadcast-rejected, onchain-failed, store-fault-after-broadcast, verification-rpc-outage, response-lost |
 
 Checks named `store-level-protection` ask a stricter question than the invariant: was the replay stopped by the store before any second broadcast, or only by the ledger's sequence rule. In pull mode the ledger alone would stop a repeated signed transaction; ChargeGuard reports that as a failure of the deployment's own protection and records the ledger refusal as an observation.
 
@@ -55,7 +55,7 @@ Checks named `store-level-protection` ask a stricter question than the invariant
 - Library: `openSqliteStore`, `parseStoreSpec`, report schemas, `runScenario`, `runSuite`.
 
 ## Failure classes covered
-Replay across workers; simultaneous presentation; amnesia on restart; store lock; store file removed or replaced; missing store configuration; reuse of a consumed, forged or lapsed challenge; broadcast rejected; settlement never confirmed; on-chain failure; store fault after broadcast; chain lookup outage during push verification.
+Replay across workers; simultaneous presentation; amnesia on restart; store lock; store file removed or replaced; missing store configuration; reuse of a consumed, forged or lapsed challenge; broadcast rejected; settlement never confirmed; on-chain failure; store fault after broadcast; chain lookup outage during push verification; a response lost after the worker delivered.
 
 ## Architecture
 `src/server` (paid endpoint on the SDK, fail-closed wrapper, request and fulfillment logs) - `src/worker` (process entry) - `src/store` (spec, sqlite adapter) - `src/chain` (stub, tap, tls) - `src/harness` (spawn workers, official client, run context) - `src/scenarios` - `src/runner.ts` and `src/suite.ts` - `src/report` (schema, text) - `src/cli.ts`.

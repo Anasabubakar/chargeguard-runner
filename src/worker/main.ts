@@ -6,9 +6,8 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { ConfigError, StoreUnavailableError } from "../errors.ts";
 import { createWorkerApp } from "../server/app.ts";
 import { workerConfigFromEnv } from "../server/config.ts";
+import { EXIT_CONFIG, EXIT_STORE } from "./exit-codes.ts";
 
-export const EXIT_CONFIG = 78;
-export const EXIT_STORE = 70;
 
 function toRequest(req: IncomingMessage, port: number): Request {
   const headers = new Headers();

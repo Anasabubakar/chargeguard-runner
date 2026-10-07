@@ -1,0 +1,562 @@
+{
+  "title": "ChargeGuard suite report v1",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "reportVersion": {
+      "type": "string",
+      "const": "1"
+    },
+    "kind": {
+      "type": "string",
+      "const": "suite"
+    },
+    "generatedAt": {
+      "type": "string",
+      "description": "ISO 8601 timestamp"
+    },
+    "command": {
+      "type": "string"
+    },
+    "environment": {
+      "type": "object",
+      "properties": {
+        "node": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "arch": {
+          "type": "string"
+        },
+        "chargeguardRunner": {
+          "type": "string"
+        },
+        "sdk": {
+          "type": "object",
+          "properties": {
+            "@stellar/mpp": {
+              "type": "string"
+            },
+            "mppx": {
+              "type": "string"
+            },
+            "@stellar/stellar-sdk": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "@stellar/mpp",
+            "mppx",
+            "@stellar/stellar-sdk"
+          ],
+          "additionalProperties": false
+        }
+      },
+      "required": [
+        "node",
+        "platform",
+        "arch",
+        "chargeguardRunner",
+        "sdk"
+      ],
+      "additionalProperties": false
+    },
+    "evidenceClass": {
+      "type": "string",
+      "enum": [
+        "in-process",
+        "integration",
+        "testnet settlement"
+      ]
+    },
+    "reports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "reportVersion": {
+            "type": "string",
+            "const": "1"
+          },
+          "kind": {
+            "type": "string",
+            "const": "run"
+          },
+          "generatedAt": {
+            "type": "string",
+            "description": "ISO 8601 timestamp"
+          },
+          "command": {
+            "type": "string",
+            "description": "The command line that produced this report."
+          },
+          "environment": {
+            "type": "object",
+            "properties": {
+              "node": {
+                "type": "string"
+              },
+              "platform": {
+                "type": "string"
+              },
+              "arch": {
+                "type": "string"
+              },
+              "chargeguardRunner": {
+                "type": "string"
+              },
+              "sdk": {
+                "type": "object",
+                "properties": {
+                  "@stellar/mpp": {
+                    "type": "string"
+                  },
+                  "mppx": {
+                    "type": "string"
+                  },
+                  "@stellar/stellar-sdk": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "@stellar/mpp",
+                  "mppx",
+                  "@stellar/stellar-sdk"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "node",
+              "platform",
+              "arch",
+              "chargeguardRunner",
+              "sdk"
+            ],
+            "additionalProperties": false
+          },
+          "evidenceClass": {
+            "type": "string",
+            "enum": [
+              "in-process",
+              "integration",
+              "testnet settlement"
+            ]
+          },
+          "chain": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": [
+                  "stub",
+                  "testnet"
+                ]
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "description"
+            ],
+            "additionalProperties": false
+          },
+          "deployment": {
+            "type": "object",
+            "properties": {
+              "workers": {
+                "type": "integer",
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991
+              },
+              "store": {
+                "type": "string",
+                "enum": [
+                  "memory",
+                  "sqlite"
+                ]
+              },
+              "mode": {
+                "type": "string",
+                "enum": [
+                  "push",
+                  "pull"
+                ]
+              }
+            },
+            "required": [
+              "workers",
+              "store",
+              "mode"
+            ],
+            "additionalProperties": false
+          },
+          "scenario": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "variant": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "invariant": {
+                "type": "string",
+                "description": "The statement this run tries to refute."
+              },
+              "faultSchedule": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "description": "Planned faults, in order, written before the run."
+              }
+            },
+            "required": [
+              "id",
+              "variant",
+              "title",
+              "invariant",
+              "faultSchedule"
+            ],
+            "additionalProperties": false
+          },
+          "expectation": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail"
+            ],
+            "description": "What this run was expected to show. A control run (isolated memory stores) expects 'fail'."
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "inconclusive"
+            ]
+          },
+          "matchesExpectation": {
+            "type": "boolean"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "checks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                },
+                "passed": {
+                  "type": "boolean"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "description",
+                "passed",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Findings that are reported but are not pass/fail checks."
+          },
+          "payments": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "push",
+                    "pull"
+                  ]
+                },
+                "txHash": {
+                  "type": "string",
+                  "description": "Inner transaction hash (hex), the payment's identity at every level."
+                },
+                "challengeId": {
+                  "type": "string"
+                },
+                "levels": {
+                  "type": "object",
+                  "properties": {
+                    "accepted": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Worker responses that accepted a credential for this payment (HTTP 200 with receipt)."
+                    },
+                    "submitted": {
+                      "anyOf": [
+                        {
+                          "type": "string",
+                          "enum": [
+                            "worker",
+                            "client"
+                          ]
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ],
+                      "description": "Who put the transaction on the network; null when no submission was observed."
+                    },
+                    "confirmed": {
+                      "type": "string",
+                      "enum": [
+                        "SUCCESS",
+                        "FAILED",
+                        "NOT_FOUND",
+                        "UNKNOWN"
+                      ],
+                      "description": "Ledger status of the transaction, observed by the runner."
+                    },
+                    "fulfilled": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991,
+                      "description": "Deliveries of the paid resource recorded in worker fulfillment logs."
+                    }
+                  },
+                  "required": [
+                    "accepted",
+                    "submitted",
+                    "confirmed",
+                    "fulfilled"
+                  ],
+                  "additionalProperties": false,
+                  "description": "The four levels kept apart for one payment: accepted credential, submitted transaction, chain confirmation, service fulfillment."
+                },
+                "note": {
+                  "description": "Plain-language reading of the four levels for this payment.",
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "mode",
+                "txHash",
+                "challengeId",
+                "levels",
+                "note"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "timeline": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number",
+                  "description": "Milliseconds since the run started, when the request was sent."
+                },
+                "durationMs": {
+                  "type": "number"
+                },
+                "worker": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string",
+                  "description": "What the scenario was doing, e.g. 'present credential to worker-b'."
+                },
+                "request": {
+                  "type": "string",
+                  "enum": [
+                    "challenge",
+                    "credential"
+                  ]
+                },
+                "status": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "description": "HTTP status the client saw; 0 when the request failed before a response."
+                },
+                "outcome": {
+                  "type": "string",
+                  "enum": [
+                    "challenge",
+                    "accepted",
+                    "rejected",
+                    "unavailable",
+                    "error"
+                  ]
+                },
+                "paymentId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "detail": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "t",
+                "durationMs",
+                "worker",
+                "label",
+                "request",
+                "status",
+                "outcome",
+                "paymentId",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "faultEvents": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "t": {
+                  "type": "number",
+                  "description": "Milliseconds since the run started."
+                },
+                "kind": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "t",
+                "kind",
+                "detail"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "limits": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "reportVersion",
+          "kind",
+          "generatedAt",
+          "command",
+          "environment",
+          "evidenceClass",
+          "chain",
+          "deployment",
+          "scenario",
+          "expectation",
+          "verdict",
+          "matchesExpectation",
+          "summary",
+          "checks",
+          "observations",
+          "payments",
+          "timeline",
+          "faultEvents",
+          "limits"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "totals": {
+      "type": "object",
+      "properties": {
+        "runs": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "pass": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "fail": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "inconclusive": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        "matchedExpectation": {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "runs",
+        "pass",
+        "fail",
+        "inconclusive",
+        "matchedExpectation"
+      ],
+      "additionalProperties": false
+    },
+    "limits": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "required": [
+    "reportVersion",
+    "kind",
+    "generatedAt",
+    "command",
+    "environment",
+    "evidenceClass",
+    "reports",
+    "totals",
+    "limits"
+  ],
+  "additionalProperties": false
+}

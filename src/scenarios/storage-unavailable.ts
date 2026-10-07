@@ -59,13 +59,14 @@ export const storageUnavailable: Scenario = {
       return [wa, wb] as const;
     })();
     const p1 = await newPayment(ctx, a, "payment before the lock");
+    const broadcastsBeforeLock = broadcastsOf(ctx, p1.payment.txHash);
     const locker = new DatabaseSync(ctx.dbPath);
     locker.exec("BEGIN EXCLUSIVE");
     ctx.fault("lock-database", "runner holds BEGIN EXCLUSIVE on the shared database");
     const lockedA = await present(ctx, a, p1, "while locked");
     const lockedB = await present(ctx, b, p1, "while locked");
     const challengeWhileLocked = await ctx.attempt(a, "challenge request while locked (stateless, should still work)");
-    const broadcastsWhileLocked = broadcastsOf(ctx, p1.payment.txHash);
+    const broadcastsWhileLocked = broadcastsOf(ctx, p1.payment.txHash) - broadcastsBeforeLock;
     locker.exec("ROLLBACK");
     locker.close();
     ctx.fault("unlock-database", "runner released the lock");
@@ -83,7 +84,7 @@ export const storageUnavailable: Scenario = {
         "locked-store-no-broadcast",
         "No transaction for the credential reaches the chain while the store cannot record the claim.",
         broadcastsWhileLocked === 0,
-        `${broadcastsWhileLocked} sendTransaction call(s) while locked${ctx.mode === "push" ? " (push mode: the payer had already paid before the lock, which is not a worker action)" : ""}.`,
+        `${broadcastsWhileLocked} new sendTransaction call(s) while locked${ctx.mode === "push" ? " (push mode: the payer's own broadcast happened before the lock and is not counted)" : ""}.`,
       ),
       check("locked-store-recovers", "After the lock is released the same credential is accepted once (the failed attempts did not consume it) and not twice.", afterUnlock.status === 200 && afterUnlockAgain.status !== 200, `after unlock: worker-b ${afterUnlock.status}, then worker-a replay ${afterUnlockAgain.status}.`),
     );

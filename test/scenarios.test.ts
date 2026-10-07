@@ -120,6 +120,7 @@ describe("ambiguous-settlement", () => {
     ["onchain-failed", "pull", { accepted: 0, submitted: "worker", confirmed: "FAILED", fulfilled: 0 }],
     ["store-fault-after-broadcast", "pull", { accepted: 0, submitted: "worker", confirmed: "SUCCESS", fulfilled: 0 }],
     ["verification-rpc-outage", "push", { accepted: 0, submitted: "client", confirmed: "SUCCESS", fulfilled: 0 }],
+    ["response-lost", "pull", { accepted: 1, submitted: "worker", confirmed: "SUCCESS", fulfilled: 1 }],
   ];
   it.each(expectLevels)("%s keeps the four levels apart", async (variant, mode, levels) => {
     const r = await run("ambiguous-settlement", "sqlite", mode, variant);

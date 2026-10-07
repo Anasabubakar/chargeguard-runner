@@ -82,10 +82,10 @@ export function renderSuiteText(s: Suite): string {
   out.push(`Generated : ${s.generatedAt}`);
   out.push(`Environment: node ${s.environment.node} on ${s.environment.platform}/${s.environment.arch}; @stellar/mpp ${s.environment.sdk["@stellar/mpp"]}, mppx ${s.environment.sdk.mppx}, @stellar/stellar-sdk ${s.environment.sdk["@stellar/stellar-sdk"]}`);
   out.push("");
-  out.push(`${pad("scenario", 36)}${pad("store", 8)}${pad("mode", 6)}${pad("verdict", 14)}expected  matches`);
+  out.push(`${pad("scenario", 50)}${pad("store", 8)}${pad("mode", 6)}${pad("verdict", 14)}expected  matches`);
   for (const r of s.reports) {
     const name = `${r.scenario.id}${r.scenario.variant ? `/${r.scenario.variant}` : ""}`;
-    out.push(`${pad(name, 36)}${pad(r.deployment.store, 8)}${pad(r.deployment.mode, 6)}${pad(r.verdict, 14)}${pad(r.expectation, 10)}${r.matchesExpectation ? "yes" : "NO"}`);
+    out.push(`${pad(name, 50)}${pad(r.deployment.store, 8)}${pad(r.deployment.mode, 6)}${pad(r.verdict, 14)}${pad(r.expectation, 10)}${r.matchesExpectation ? "yes" : "NO"}`);
   }
   out.push("");
   out.push(`Totals: ${s.totals.runs} runs; pass ${s.totals.pass}, fail ${s.totals.fail}, inconclusive ${s.totals.inconclusive}; ${s.totals.matchedExpectation} matched their expectation.`);

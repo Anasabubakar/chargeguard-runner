@@ -1,8 +1,8 @@
 import { createServer, type Server } from "node:https";
-import { createTestCert, trustCert, type TestCert } from "./tls.ts";
+import { createTestCert, trustCert } from "./tls.ts";
+import type { Chain, ChainObservation, SendLogEntry } from "./chain.ts";
 import {
   Address,
-  Keypair,
   Networks,
   SorobanDataBuilder,
   Transaction,
@@ -37,6 +37,8 @@ export interface ChainFaults {
   send: SendMode;
   /** When landing, finish as FAILED instead of SUCCESS. */
   landAs: "SUCCESS" | "FAILED";
+  /** error: getTransaction answers with a JSON-RPC error (the node cannot say what it knows). */
+  lookup: "ok" | "error";
 }
 
 export interface ChainTx {
@@ -50,13 +52,11 @@ export interface ChainTx {
   ledger?: number;
 }
 
-export interface FakeChain {
-  readonly url: string;
-  /** Certificate the stub serves; spawned workers get it through NODE_EXTRA_CA_CERTS. */
-  readonly cert: TestCert;
+export interface FakeChain extends Chain {
+  readonly kind: "stub";
   faults: ChainFaults;
-  /** Every sendTransaction call the node received, in order, including rejected ones. */
-  readonly sendLog: Array<{ at: string; hash: string; outcome: "PENDING" | "DUPLICATE" | "ERROR" | "DROPPED" }>;
+  /** Called after a transaction is accepted into the stub's mempool and before the node answers. */
+  onSend: ((hash: string) => void | Promise<void>) | null;
   lookup(hash: string): ChainTx | undefined;
   /** Confirms a pending transaction (manual landing). */
   land(hash: string, as?: "SUCCESS" | "FAILED"): ChainTx;
@@ -113,10 +113,11 @@ function transferOf(tx: Transaction): { contractId: Buffer; from: string; to: st
 }
 
 export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promise<FakeChain> {
-  const faults: ChainFaults = { land: "immediate", send: "ok", landAs: "SUCCESS", ...initial };
+  const faults: ChainFaults = { land: "immediate", send: "ok", landAs: "SUCCESS", lookup: "ok", ...initial };
+  let onSend: FakeChain["onSend"] = null;
   const sequences = new Map<string, bigint>();
   const txs = new Map<string, ChainTx>();
-  const sendLog: FakeChain["sendLog"] = [];
+  const sendLog: SendLogEntry[] = [];
   let ledger = BASE_LEDGER;
 
   const seqOf = (address: string): bigint => {
@@ -131,7 +132,7 @@ export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promis
     tx.landedAt = new Date().toISOString();
   };
 
-  const methods: Record<string, (params: any, ctx: { drop: () => void }) => unknown> = {
+  const methods: Record<string, (params: any, ctx: { drop: () => void }) => unknown | Promise<unknown>> = {
     getHealth: () => ({ status: "healthy", latestLedger: ledger }),
     getLedgerEntries: ({ keys }: { keys: string[] }) => ({
       latestLedger: ledger,
@@ -167,7 +168,7 @@ export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promis
         results: [{ auth: [], xdr: xdr.ScVal.scvVoid().toXDR("base64") }],
       };
     },
-    sendTransaction: ({ transaction }: { transaction: string }, ctx) => {
+    sendTransaction: async ({ transaction }: { transaction: string }, ctx) => {
       const tx = parseTx(transaction);
       const hash = tx.hash().toString("hex");
       const at = new Date().toISOString();
@@ -184,12 +185,14 @@ export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promis
       }
       const outcome = applySend(tx, hash, transaction, at);
       sendLog.push({ at, hash, outcome });
+      if (outcome === "PENDING" && onSend) await onSend(hash);
       if (outcome === "ERROR") {
         return { status: "ERROR", hash, latestLedger: ledger, latestLedgerCloseTime: String(Math.floor(Date.now() / 1000)), errorResultXdr: resultXdr("badSeq") };
       }
       return { status: outcome, hash, latestLedger: ledger, latestLedgerCloseTime: String(Math.floor(Date.now() / 1000)) };
     },
     getTransaction: ({ hash }: { hash: string }) => {
+      if (faults.lookup === "error") throw new Error("stub node: getTransaction unavailable");
       const tx = txs.get(hash);
       const close = String(Math.floor(Date.now() / 1000));
       if (!tx || tx.status === "PENDING") {
@@ -230,7 +233,7 @@ export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promis
   const server: Server = createServer({ key: cert.key, cert: cert.cert }, (req, res) => {
     const chunks: Buffer[] = [];
     req.on("data", (c: Buffer) => chunks.push(c));
-    req.on("end", () => {
+    req.on("end", async () => {
       let id: unknown = null;
       try {
         const body = JSON.parse(Buffer.concat(chunks).toString("utf8")) as { id: unknown; method: string; params: unknown };
@@ -241,7 +244,7 @@ export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promis
           return;
         }
         let dropped = false;
-        const result = handler(body.params, {
+        const result = await handler(body.params, {
           drop: () => {
             dropped = true;
             req.socket.destroy();
@@ -258,11 +261,25 @@ export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promis
   const port = (server.address() as { port: number }).port;
 
   return {
+    kind: "stub",
+    description: "local stub of a Soroban RPC node (no real ledger, no contract execution)",
     url: `https://127.0.0.1:${port}`,
     cert,
     faults,
     sendLog,
+    get onSend() {
+      return onSend;
+    },
+    set onSend(fn) {
+      onSend = fn;
+    },
     lookup: (hash) => txs.get(hash),
+    async observe(hash): Promise<ChainObservation> {
+      const tx = txs.get(hash);
+      const sent = sendLog.some((e) => e.hash === hash && (e.outcome === "PENDING" || e.outcome === "DUPLICATE" || e.outcome === "DROPPED"));
+      if (!tx) return { submitted: sent, status: "NOT_FOUND" };
+      return { submitted: true, status: tx.status === "PENDING" ? "NOT_FOUND" : tx.status };
+    },
     land(hash, as = "SUCCESS") {
       const tx = txs.get(hash);
       if (!tx) throw new Error(`unknown transaction ${hash}`);
@@ -278,4 +295,3 @@ export async function startFakeChain(initial: Partial<ChainFaults> = {}): Promis
   };
 }
 
-export { Keypair };

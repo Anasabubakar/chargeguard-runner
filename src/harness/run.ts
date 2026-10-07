@@ -67,6 +67,8 @@ export class RunContext {
   readonly workersStarted = new Set<WorkerHandle>();
   private readonly paymentRecords: PaymentRecord[] = [];
   private payerIndex = 0;
+  /** Requests the client deliberately abandoned; the worker may still have processed them. */
+  private abandoned = 0;
   readonly dbPath: string;
 
   constructor(env: ScenarioEnv, store: StoreKind, mode: PayMode) {
@@ -153,7 +155,7 @@ export class RunContext {
   }
 
   /** Sends one request to a worker and records what came back. */
-  async attempt(worker: WorkerHandle, label: string, options: { authorization?: string; payment?: PaymentRecord } = {}): Promise<AttemptResult> {
+  async attempt(worker: WorkerHandle, label: string, options: { authorization?: string; payment?: PaymentRecord; abandonAfterMs?: number } = {}): Promise<AttemptResult> {
     const t = this.elapsed();
     const started = Date.now();
     const kind: TimelineEntry["request"] = options.authorization ? "credential" : "challenge";
@@ -161,7 +163,7 @@ export class RunContext {
     try {
       const response = await fetch(`${worker.url}/paid`, {
         headers: options.authorization ? { authorization: options.authorization } : {},
-        signal: AbortSignal.timeout(this.env.timing.requestTimeoutMs),
+        signal: options.abandonAfterMs !== undefined ? AbortSignal.timeout(options.abandonAfterMs) : AbortSignal.timeout(this.env.timing.requestTimeoutMs),
       });
       const keep = response.clone();
       const text = await response.text();
@@ -187,7 +189,16 @@ export class RunContext {
         response.status === 200 ? "accepted" : response.status === 402 ? (kind === "challenge" ? "challenge" : "rejected") : response.status === 503 ? "unavailable" : "error";
       result = { status: response.status, outcome, body: text, response: keep, receiptRef, fulfillmentId, detail };
     } catch (error) {
-      result = { status: 0, outcome: "error", body: "", response: null, receiptRef: null, fulfillmentId: null, detail: (error as Error).message };
+      if (options.abandonAfterMs !== undefined) this.abandoned++;
+      result = {
+        status: 0,
+        outcome: "error",
+        body: "",
+        response: null,
+        receiptRef: null,
+        fulfillmentId: null,
+        detail: options.abandonAfterMs !== undefined ? `client dropped the connection after ${options.abandonAfterMs} ms, before any response (a lost response)` : (error as Error).message,
+      };
     }
     this.timeline.push({
       t,
@@ -238,10 +249,11 @@ export class RunContext {
 
   /** The four levels for every registered payment, with chain facts observed by the runner. */
   async computeLevels(): Promise<Payment[]> {
-    const { fulfillments } = this.readWorkerLogs();
+    const { events, fulfillments } = this.readWorkerLogs();
     const out: Payment[] = [];
     for (const p of this.paymentRecords) {
-      const accepted = this.timeline.filter((e) => e.paymentId === p.id && e.outcome === "accepted").length;
+      // Level "accepted" is what the workers decided, read from their own logs (a client can lose a response).
+      const accepted = events.filter((e) => e.outcome === "accepted" && e.reference === p.txHash).length;
       const fulfilled = fulfillments.filter((f) => f.reference === p.txHash).length;
       const observed = await this.env.chain.observe(p.txHash);
       const submitted: PaymentLevels["submitted"] = !observed.submitted ? null : p.mode === "push" ? "client" : "worker";
@@ -258,12 +270,18 @@ export class RunContext {
     const workerAccepted = events.filter((e) => e.outcome === "accepted").length;
     const clientTotal = this.timeline.filter((e) => e.status !== 0).length;
     const workerTotal = events.length;
-    const ok = clientAccepted === workerAccepted && fulfillments.length === workerAccepted && clientTotal === workerTotal;
+    // A deliberately abandoned request is processed by the worker but never answered to the client.
+    const ok =
+      workerAccepted >= clientAccepted &&
+      workerAccepted - clientAccepted <= this.abandoned &&
+      fulfillments.length === workerAccepted &&
+      workerTotal - clientTotal >= 0 &&
+      workerTotal - clientTotal <= this.abandoned;
     return {
       id: "evidence-consistent",
       description: "Client-observed responses match the workers' own request and fulfillment logs.",
       passed: ok,
-      detail: `client saw ${clientTotal} responses (${clientAccepted} accepted); workers logged ${workerTotal} requests (${workerAccepted} accepted) and ${fulfillments.length} fulfillments.`,
+      detail: `client saw ${clientTotal} responses (${clientAccepted} accepted); workers logged ${workerTotal} requests (${workerAccepted} accepted) and ${fulfillments.length} fulfillments${this.abandoned ? `; ${this.abandoned} request(s) were abandoned by the client on purpose` : ""}.`,
     };
   }
 }

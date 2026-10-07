@@ -305,6 +305,55 @@
         "additionalProperties": false
       }
     },
+    "broadcasts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "t": {
+            "type": "number",
+            "description": "Milliseconds since the run started."
+          },
+          "paymentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "txHash": {
+            "type": "string"
+          },
+          "outcome": {
+            "type": "string",
+            "enum": [
+              "PENDING",
+              "DUPLICATE",
+              "ERROR",
+              "DROPPED",
+              "UNKNOWN"
+            ],
+            "description": "What the node answered to sendTransaction. DROPPED: the connection was cut before an answer."
+          },
+          "resultCode": {
+            "description": "For ERROR: the transaction result code the node gave (for example txBadSeq), when decodable.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "t",
+          "paymentId",
+          "txHash",
+          "outcome",
+          "resultCode"
+        ],
+        "additionalProperties": false,
+        "description": "One sendTransaction call that reached the chain endpoint, whoever sent it."
+      },
+      "description": "Every sendTransaction the chain endpoint saw, with the node's answer: the runner's independent record of level 'submitted'."
+    },
     "timeline": {
       "type": "array",
       "items": {
@@ -424,6 +473,7 @@
     "checks",
     "observations",
     "payments",
+    "broadcasts",
     "timeline",
     "faultEvents",
     "limits"

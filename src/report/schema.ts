@@ -51,6 +51,16 @@ export const faultEventSchema = z
   })
   .describe("A fault the runner injected, or a harness action (a worker start, a payer broadcast), in the order it happened.");
 
+export const broadcastSchema = z
+  .object({
+    t: z.number().describe("Milliseconds since the run started."),
+    paymentId: z.string().nullable(),
+    txHash: z.string(),
+    outcome: z.enum(["PENDING", "DUPLICATE", "ERROR", "DROPPED", "UNKNOWN"]).describe("What the node answered to sendTransaction. DROPPED: the connection was cut before an answer."),
+    resultCode: z.string().nullable().describe("For ERROR: the transaction result code the node gave (for example txBadSeq), when decodable."),
+  })
+  .describe("One sendTransaction call that reached the chain endpoint, whoever sent it.");
+
 export const checkSchema = z.object({
   id: z.string(),
   description: z.string(),
@@ -106,6 +116,7 @@ export const reportSchema = z.object({
   checks: z.array(checkSchema),
   observations: z.array(z.string()).describe("Findings that are reported but are not pass/fail checks."),
   payments: z.array(paymentSchema),
+  broadcasts: z.array(broadcastSchema).describe("Every sendTransaction the chain endpoint saw, with the node's answer: the runner's independent record of level 'submitted'."),
   timeline: z.array(timelineEntrySchema),
   faultEvents: z.array(faultEventSchema).describe("Faults injected and harness actions, in order, as they actually happened (the plan is scenario.faultSchedule)."),
   limits: z.array(z.string()),
@@ -132,6 +143,7 @@ export const suiteSchema = z.object({
 export type Report = z.infer<typeof reportSchema>;
 export type Suite = z.infer<typeof suiteSchema>;
 export type Payment = z.infer<typeof paymentSchema>;
+export type Broadcast = z.infer<typeof broadcastSchema>;
 export type TimelineEntry = z.infer<typeof timelineEntrySchema>;
 export type FaultEvent = z.infer<typeof faultEventSchema>;
 export type Check = z.infer<typeof checkSchema>;

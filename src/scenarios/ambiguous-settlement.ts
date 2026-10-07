@@ -2,7 +2,7 @@ import { DatabaseSync } from "node:sqlite";
 import { broadcastsOf, challengeKey, check, inspectKey, newPayment, present } from "./helpers.ts";
 import type { Scenario } from "./types.ts";
 
-export const AMBIGUOUS_VARIANTS = ["unconfirmed-then-lands", "broadcast-rejected", "onchain-failed", "store-fault-after-broadcast", "verification-rpc-outage"] as const;
+export const AMBIGUOUS_VARIANTS = ["unconfirmed-then-lands", "broadcast-rejected", "onchain-failed", "store-fault-after-broadcast", "verification-rpc-outage", "response-lost"] as const;
 
 const PLANS: Record<string, string[]> = {
   "unconfirmed-then-lands": [
@@ -25,6 +25,12 @@ const PLANS: Record<string, string[]> = {
     "When the stub receives the worker's broadcast, the runner takes an exclusive lock on the shared database.",
     "The worker's next store write (recording the pending hash) fails while the transaction is already on the chain.",
     "Present the credential to worker-a (expect 503), release the lock, retry on worker-b: record whether it stays locked and that no second broadcast occurs.",
+  ],
+  "response-lost": [
+    "Pull mode on a healthy chain and a healthy store.",
+    "Present the credential to worker-a but drop the client connection 10 ms later, before any response: the worker still verifies, settles and delivers.",
+    "Wait until worker-a's own log shows the outcome, then retry the same credential on worker-a and worker-b.",
+    "Record what the client could see (nothing) against what the workers did (accepted and delivered once).",
   ],
   "verification-rpc-outage": [
     "Push mode: the payer pays and confirms on the stub chain.",
@@ -75,6 +81,29 @@ export const ambiguousSettlement: Scenario = {
 
     const pay = await newPayment(ctx, a, "payment");
     const hash = pay.payment.txHash;
+
+    if (variant === "response-lost") {
+      const lost = await ctx.attempt(a, `present ${pay.payment.id} to ${a.id}, connection dropped before any response`, { authorization: pay.authorization, payment: pay.payment, abandonAfterMs: 10 });
+      // The worker keeps going after the client has hung up: wait for its own record of the outcome.
+      const deadline = Date.now() + 20_000;
+      let outcome: string | null = null;
+      while (Date.now() < deadline && !outcome) {
+        const seen = ctx.readWorkerLogs().events.find((e) => e.challengeId === pay.payment.challengeId && e.presented !== "none");
+        if (seen) outcome = seen.outcome;
+        else await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+      ctx.fault("worker-finished", `worker-a's log shows outcome '${outcome ?? "none within 20 s"}' for the abandoned request`);
+      const retryA = await present(ctx, a, pay, "retry after the lost response");
+      const retryB = await present(ctx, b, pay, "retry after the lost response");
+      ctx.observe(
+        `The client never saw a response (status ${lost.status}) but worker-a recorded '${outcome}'. A retry of the same credential is indistinguishable from a replay and was refused (${retryA.status}, ${retryB.status}). Replay protection cannot tell a retry from an attack: a payer whose response was lost holds a receipt-less payment. Idempotent retries (an operator-chosen retrieval path keyed by the challenge or transaction hash) are outside the SDK and outside this tool.`,
+      );
+      return [
+        check("lost-response-delivered-once", "The request whose response was lost was still processed once by the worker.", outcome === "accepted", `worker-a logged outcome '${outcome ?? "none"}'.`),
+        check("retry-not-delivered-again", "Retrying the same credential does not deliver again.", retryA.status !== 200 && retryB.status !== 200, `worker-a ${retryA.status}, worker-b ${retryB.status}.`),
+        check("no-rebroadcast", "Retrying does not broadcast the transaction again.", broadcastsOf(ctx, hash) === 1, `${broadcastsOf(ctx, hash)} sendTransaction call(s).`),
+      ];
+    }
 
     if (variant === "unconfirmed-then-lands") {
       chain.faults.land = "manual";

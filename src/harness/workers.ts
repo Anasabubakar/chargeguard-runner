@@ -1,4 +1,6 @@
 import { spawn, type ChildProcess } from "node:child_process";
+import { appendFileSync } from "node:fs";
+import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ext = import.meta.url.endsWith(".ts") ? ".ts" : ".js";
@@ -72,7 +74,15 @@ export function tryStartWorker(options: WorkerOptions, timeoutMs = 20_000): Prom
   const args = ext === ".ts" ? ["--experimental-strip-types", "--disable-warning=ExperimentalWarning", WORKER_MAIN] : [WORKER_MAIN];
   const child: ChildProcess = spawn(process.execPath, args, { env: buildEnv(options), stdio: ["ignore", "pipe", "pipe"] });
   let stderr = "";
-  child.stderr!.on("data", (d: Buffer) => (stderr += d.toString()));
+  child.stderr!.on("data", (d: Buffer) => {
+    stderr += d.toString();
+    // Kept next to the worker's own logs: mppx prints the real cause of a failed verification here.
+    try {
+      appendFileSync(join(options.runDir, `stderr-${options.id}.log`), d);
+    } catch {
+      /* the run directory may already be gone */
+    }
+  });
   let exited = false;
   const exitPromise = new Promise<void>((resolve) => child.once("exit", () => ((exited = true), resolve())));
 

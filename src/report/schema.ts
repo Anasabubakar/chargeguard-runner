@@ -43,11 +43,13 @@ export const timelineEntrySchema = z.object({
   detail: z.string().nullable(),
 });
 
-export const faultEventSchema = z.object({
-  t: z.number().describe("Milliseconds since the run started."),
-  kind: z.string(),
-  detail: z.string(),
-});
+export const faultEventSchema = z
+  .object({
+    t: z.number().describe("Milliseconds since the run started."),
+    kind: z.string(),
+    detail: z.string(),
+  })
+  .describe("A fault the runner injected, or a harness action (a worker start, a payer broadcast), in the order it happened.");
 
 export const checkSchema = z.object({
   id: z.string(),
@@ -105,7 +107,7 @@ export const reportSchema = z.object({
   observations: z.array(z.string()).describe("Findings that are reported but are not pass/fail checks."),
   payments: z.array(paymentSchema),
   timeline: z.array(timelineEntrySchema),
-  faultEvents: z.array(faultEventSchema),
+  faultEvents: z.array(faultEventSchema).describe("Faults injected and harness actions, in order, as they actually happened (the plan is scenario.faultSchedule)."),
   limits: z.array(z.string()),
 });
 

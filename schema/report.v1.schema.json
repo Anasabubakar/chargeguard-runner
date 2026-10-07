@@ -395,8 +395,10 @@
           "kind",
           "detail"
         ],
-        "additionalProperties": false
-      }
+        "additionalProperties": false,
+        "description": "A fault the runner injected, or a harness action (a worker start, a payer broadcast), in the order it happened."
+      },
+      "description": "Faults injected and harness actions, in order, as they actually happened (the plan is scenario.faultSchedule)."
     },
     "limits": {
       "type": "array",

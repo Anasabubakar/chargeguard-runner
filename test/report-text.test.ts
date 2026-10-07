@@ -20,6 +20,7 @@ const report: Report = {
   checks: [{ id: "single-acceptance", description: "At most one acceptance.", passed: false, detail: "2 accepted" }],
   observations: ["an observation"],
   payments: [{ id: "payment-1", mode: "push", txHash: "ab".repeat(32), challengeId: "c1", levels: { accepted: 2, submitted: "client", confirmed: "SUCCESS", fulfilled: 2 }, note: "One payment bought more than one delivery." }],
+  broadcasts: [{ t: 5, paymentId: "payment-1", txHash: "ab".repeat(32), outcome: "PENDING", resultCode: null }],
   timeline: [{ t: 10, durationMs: 5, worker: "worker-a", label: "present", request: "credential", status: 200, outcome: "accepted", paymentId: "payment-1", detail: null }],
   faultEvents: [{ t: 1, kind: "worker-start", detail: "started" }],
   limits: [...STANDARD_LIMITS],

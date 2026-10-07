@@ -117,7 +117,7 @@ export async function runScenario(opts: RunOptions): Promise<Report> {
       verdict === "inconclusive"
         ? `Inconclusive: ${harnessProblem ?? integrity.detail}`
         : verdict === "pass"
-          ? `All ${checks.length} checks passed.${overPaid.length ? "" : ""}`
+          ? `All ${checks.length} checks passed.`
           : `${failed.length} of ${checks.length} checks failed: ${failed.map((c) => c.id).join(", ")}.`;
 
     const report: Report = {

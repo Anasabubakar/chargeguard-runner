@@ -34,7 +34,7 @@ export const repeatedCredential: Scenario = {
         "The replay is stopped by the store before any second transaction reaches the chain, not only by the ledger's sequence rule.",
         ctx.mode === "pull" ? broadcasts <= 1 : accepted <= 1,
         ctx.mode === "pull"
-          ? `${broadcasts} sendTransaction call${broadcasts === 1 ? "" : "s"} for this transaction reached the chain (answers: ${ctx.env.chain.sendLog.filter((e) => e.hash === pay.payment.txHash).map((e) => e.outcome).join(", ") || "none"}).`
+          ? `${broadcasts} sendTransaction call${broadcasts === 1 ? "" : "s"} for this transaction reached the chain (answers: ${ctx.env.chain.sendLog.filter((e) => e.hash === pay.payment.txHash).map((e) => (e.resultCode ? `${e.outcome} ${e.resultCode}` : e.outcome)).join(", ") || "none"}).`
           : `push mode: the chain cannot refuse a repeated hash, so the store is the only defence; ${accepted} acceptance${accepted === 1 ? "" : "s"}.`,
       ),
     );

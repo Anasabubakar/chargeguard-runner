@@ -54,6 +54,11 @@ export function renderReportText(r: Report): string {
     }
     for (const p of r.payments) if (p.note) out.push(wrap(`${p.id} (${p.txHash.slice(0, 12)}…): ${p.note}`, "  "));
   }
+  if (r.broadcasts.length) {
+    out.push("");
+    out.push("Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):");
+    for (const b of r.broadcasts) out.push(`  +${pad(String(b.t), 6)} ms  ${pad(b.paymentId ?? "unknown", 11)}${pad(b.outcome, 10)}${b.resultCode ?? ""}  ${b.txHash.slice(0, 12)}…`);
+  }
   if (r.faultEvents.length) {
     out.push("");
     out.push("Fault and harness events:");

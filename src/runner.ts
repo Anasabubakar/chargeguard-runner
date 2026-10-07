@@ -143,6 +143,13 @@ export async function runScenario(opts: RunOptions): Promise<Report> {
       checks: [...checks, integrity],
       observations: ctx.observations,
       payments,
+      broadcasts: chain.sendLog.map((e) => ({
+        t: Math.max(0, new Date(e.at).getTime() - ctx.startedAt),
+        paymentId: payments.find((p) => p.txHash === e.hash)?.id ?? null,
+        txHash: e.hash,
+        outcome: e.outcome,
+        resultCode: e.resultCode ?? null,
+      })),
       timeline: ctx.timeline,
       faultEvents: ctx.faultEvents,
       limits: [...STANDARD_LIMITS, ...(backend === "stub" ? ["The chain is a local stub: confirmations are simulated and no real transaction was made."] : ["Testnet is a shared network with its own latency; a run shows what happened once."])],

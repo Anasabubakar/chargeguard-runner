@@ -1,0 +1,50 @@
+{
+  "name": "@anasabubakar/chargeguard-runner",
+  "version": "0.1.0",
+  "description": "Deployment tests for Stellar MPP replay protection: two real worker processes, a shared durable atomic store, fault scenarios and evidence reports.",
+  "license": "MIT",
+  "author": "Anas Abubakar",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "bin": {
+    "chargeguard": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./schema/report.v1.schema.json": "./schema/report.v1.schema.json"
+  },
+  "files": [
+    "dist",
+    "schema",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "schema": "node --experimental-strip-types scripts/gen-schema.ts",
+    "check:schema": "node --experimental-strip-types scripts/gen-schema.ts --check",
+    "pack:artifact": "pnpm run build && pnpm pack --pack-destination artifacts"
+  },
+  "dependencies": {
+    "@stellar/mpp": "0.7.1",
+    "@stellar/stellar-sdk": "15.1.0",
+    "mppx": "0.6.31",
+    "viem": "2.57.3",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.4",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3"
+  }
+}

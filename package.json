@@ -1,6 +1,6 @@
 {
   "name": "@anas.abubakar/chargeguard-runner",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Deployment tests for Stellar MPP replay protection: two real worker processes, a shared durable atomic store, fault scenarios and evidence reports.",
   "license": "MIT",
   "author": "Anas Abubakar",
@@ -47,5 +47,13 @@
     "@types/node": "26.6.4",
     "typescript": "7.0.2",
     "vitest": "5.0.3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Anasabubakar/chargeguard-runner.git"
+  },
+  "homepage": "https://github.com/Anasabubakar/chargeguard-runner#readme",
+  "bugs": {
+    "url": "https://github.com/Anasabubakar/chargeguard-runner/issues"
   }
 }

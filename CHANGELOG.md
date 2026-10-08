@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.1.1
+- Package metadata (repository, homepage, bugs) and absolute documentation links. No runtime changes since 0.1.0.
+
 ## 0.1.0 (unreleased)
 - Reference paid endpoint on the official `@stellar/mpp@0.7.1` charge method (mppx 0.6.31, stellar-sdk 15.1.0) with a configurable store, fail-closed 503 on store faults, and no default store.
 - Shared durable atomic store on `node:sqlite` (WAL, BEGIN IMMEDIATE, inode check) behind mppx's `AtomicStore`.

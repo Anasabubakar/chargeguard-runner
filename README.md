@@ -123,3 +123,9 @@ Supported: Node 22.13+ (developed on 24.19), TypeScript 7.0.2, vitest 5.0.3, zod
 ## Status
 
 Engineering complete for the declared version-one scope. Published on GitHub (CI green) and npm; not done: review by the SDK or mppx maintainers, a networked-store (Redis/PostgreSQL) test, the sponsored `feePayer` path. MIT licensed.
+
+## Contributors
+
+<a href="https://github.com/Anasabubakar/chargeguard-runner/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=Anasabubakar/chargeguard-runner" alt="Contributors to chargeguard-runner" />
+</a>

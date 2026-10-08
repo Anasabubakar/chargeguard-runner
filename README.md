@@ -1,5 +1,7 @@
 # chargeguard-runner
 
+**Documentation:** https://stellar-developer-tools.gitbook.io/chargeguard-runner/
+
 Your SDK can be correct while your deployment breaks its assumptions.
 
 ChargeGuard tests the deployment, not the SDK. It starts **two real worker processes** that serve one paid HTTP endpoint on the official Stellar MPP SDK (`@stellar/mpp` charge), points both at a replay-protection store you choose, and then repeats, races, kills, locks and starves that store while a real client pays. Every run is reported at four levels that are kept apart: **accepted credential**, **submitted transaction**, **chain confirmation**, **service fulfillment**.

@@ -1,0 +1,2124 @@
+{
+  "reportVersion": "1",
+  "kind": "suite",
+  "generatedAt": "2026-10-08T08:57:41.262Z",
+  "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+  "environment": {
+    "node": "v24.19.0",
+    "platform": "linux",
+    "arch": "x64",
+    "chargeguardRunner": "0.1.0",
+    "sdk": {
+      "@stellar/mpp": "0.7.1",
+      "mppx": "0.6.31",
+      "@stellar/stellar-sdk": "15.1.0"
+    }
+  },
+  "evidenceClass": "testnet settlement",
+  "reports": [
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:55:23.500Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "memory",
+        "mode": "push"
+      },
+      "scenario": {
+        "id": "repeated-credential",
+        "variant": null,
+        "title": "Repeated credential across workers",
+        "invariant": "A credential that one worker accepted is not accepted by the other worker, and the paid resource is delivered once.",
+        "faultSchedule": [
+          "Start worker-a and worker-b, each a separate OS process, store memory (one private map per process).",
+          "Obtain one challenge and build one push-mode credential with the official client.",
+          "Present the credential to worker-a, then the identical credential to worker-b, then to worker-a again."
+        ]
+      },
+      "expectation": "fail",
+      "verdict": "fail",
+      "matchesExpectation": true,
+      "summary": "4 of 5 checks failed: single-acceptance, store-level-protection, single-fulfillment, single-fulfillment-per-challenge.",
+      "checks": [
+        {
+          "id": "first-presentation-accepted",
+          "description": "The first presentation is accepted (otherwise the run proves nothing).",
+          "passed": true,
+          "detail": "worker-a answered 200."
+        },
+        {
+          "id": "single-acceptance",
+          "description": "At most one response across both workers accepts the credential.",
+          "passed": false,
+          "detail": "2 of 3 presentations were accepted (200, 200, 402)."
+        },
+        {
+          "id": "store-level-protection",
+          "description": "The replay is stopped by the store before any second transaction reaches the chain, not only by the ledger's sequence rule.",
+          "passed": false,
+          "detail": "push mode: the chain cannot refuse a repeated hash, so the store is the only defence; 2 acceptances."
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": false,
+          "detail": "payment-1 delivered 2 times."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": false,
+          "detail": "challenge CYO2FD2dVG… delivered 2 times"
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 4 responses (2 accepted); workers logged 4 requests (2 accepted) and 2 fulfillments."
+        }
+      ],
+      "observations": [],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "push",
+          "txHash": "d14f3214fc9db8304f430c63fb26524e2280c0cdff327af02c372e49ac90f5d2",
+          "challengeId": "CYO2FD2dVGdFAwGw5bh38pNMtoOZcsZyV6GzIxxtA2E",
+          "levels": {
+            "accepted": 2,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 2
+          },
+          "note": "2 worker responses accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 2 times. One payment bought more than one delivery."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 3426,
+          "paymentId": "payment-1",
+          "txHash": "d14f3214fc9db8304f430c63fb26524e2280c0cdff327af02c372e49ac90f5d2",
+          "outcome": "PENDING",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 2256,
+          "durationMs": 37,
+          "worker": "worker-a",
+          "label": "payment: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 6509,
+          "durationMs": 352,
+          "worker": "worker-a",
+          "label": "first presentation: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 6861,
+          "durationMs": 350,
+          "worker": "worker-b",
+          "label": "replay to the other worker: present payment-1 to worker-b",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 7211,
+          "durationMs": 7,
+          "worker": "worker-a",
+          "label": "replay to the first worker: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 1115,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 70657 with store memory"
+        },
+        {
+          "t": 2254,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 70695 with store memory"
+        },
+        {
+          "t": 6509,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction d14f3214fc9d… itself (push)"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    },
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:55:34.208Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "sqlite",
+        "mode": "push"
+      },
+      "scenario": {
+        "id": "repeated-credential",
+        "variant": null,
+        "title": "Repeated credential across workers",
+        "invariant": "A credential that one worker accepted is not accepted by the other worker, and the paid resource is delivered once.",
+        "faultSchedule": [
+          "Start worker-a and worker-b, each a separate OS process, store sqlite (one shared file).",
+          "Obtain one challenge and build one push-mode credential with the official client.",
+          "Present the credential to worker-a, then the identical credential to worker-b, then to worker-a again."
+        ]
+      },
+      "expectation": "pass",
+      "verdict": "pass",
+      "matchesExpectation": true,
+      "summary": "All 5 checks passed.",
+      "checks": [
+        {
+          "id": "first-presentation-accepted",
+          "description": "The first presentation is accepted (otherwise the run proves nothing).",
+          "passed": true,
+          "detail": "worker-a answered 200."
+        },
+        {
+          "id": "single-acceptance",
+          "description": "At most one response across both workers accepts the credential.",
+          "passed": true,
+          "detail": "1 of 3 presentations were accepted (200, 402, 402)."
+        },
+        {
+          "id": "store-level-protection",
+          "description": "The replay is stopped by the store before any second transaction reaches the chain, not only by the ledger's sequence rule.",
+          "passed": true,
+          "detail": "push mode: the chain cannot refuse a repeated hash, so the store is the only defence; 1 acceptance."
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": true,
+          "detail": "max deliveries per payment: 1."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": true,
+          "detail": "no challenge was delivered more than once."
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 4 responses (1 accepted); workers logged 4 requests (1 accepted) and 1 fulfillments."
+        }
+      ],
+      "observations": [],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "push",
+          "txHash": "03cafa1f92a508d00e424f433e7382cbb6c1b7372329dfc030ef6c3b81e0d377",
+          "challengeId": "Noomas1Uck-BDzArqD51Yv38qD6PYexBTIreXqCixKY",
+          "levels": {
+            "accepted": 1,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 1 time."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 3075,
+          "paymentId": "payment-1",
+          "txHash": "03cafa1f92a508d00e424f433e7382cbb6c1b7372329dfc030ef6c3b81e0d377",
+          "outcome": "PENDING",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 2103,
+          "durationMs": 19,
+          "worker": "worker-a",
+          "label": "payment: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 9974,
+          "durationMs": 419,
+          "worker": "worker-a",
+          "label": "first presentation: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 10393,
+          "durationMs": 21,
+          "worker": "worker-b",
+          "label": "replay to the other worker: present payment-1 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10414,
+          "durationMs": 7,
+          "worker": "worker-a",
+          "label": "replay to the first worker: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 1092,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 70772 with store sqlite (shared file)"
+        },
+        {
+          "t": 2103,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 70792 with store sqlite (shared file)"
+        },
+        {
+          "t": 9974,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction 03cafa1f92a5… itself (push)"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    },
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:55:45.308Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "memory",
+        "mode": "pull"
+      },
+      "scenario": {
+        "id": "repeated-credential",
+        "variant": null,
+        "title": "Repeated credential across workers",
+        "invariant": "A credential that one worker accepted is not accepted by the other worker, and the paid resource is delivered once.",
+        "faultSchedule": [
+          "Start worker-a and worker-b, each a separate OS process, store memory (one private map per process).",
+          "Obtain one challenge and build one pull-mode credential with the official client.",
+          "Present the credential to worker-a, then the identical credential to worker-b, then to worker-a again."
+        ]
+      },
+      "expectation": "fail",
+      "verdict": "fail",
+      "matchesExpectation": true,
+      "summary": "1 of 5 checks failed: store-level-protection.",
+      "checks": [
+        {
+          "id": "first-presentation-accepted",
+          "description": "The first presentation is accepted (otherwise the run proves nothing).",
+          "passed": true,
+          "detail": "worker-a answered 200."
+        },
+        {
+          "id": "single-acceptance",
+          "description": "At most one response across both workers accepts the credential.",
+          "passed": true,
+          "detail": "1 of 3 presentations were accepted (200, 402, 402)."
+        },
+        {
+          "id": "store-level-protection",
+          "description": "The replay is stopped by the store before any second transaction reaches the chain, not only by the ledger's sequence rule.",
+          "passed": false,
+          "detail": "2 sendTransaction calls for this transaction reached the chain (answers: PENDING, UNKNOWN)."
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": true,
+          "detail": "max deliveries per payment: 1."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": true,
+          "detail": "no challenge was delivered more than once."
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 4 responses (1 accepted); workers logged 4 requests (1 accepted) and 1 fulfillments."
+        }
+      ],
+      "observations": [
+        "The second worker's broadcast of the same signed transaction was refused by the network (sequence number already used). The deployment was saved by the ledger, not by its store."
+      ],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "pull",
+          "txHash": "e840db5ba5000689ae2369a991e925eea7ec5f5910ac2608b85d6a13d01f4c32",
+          "challengeId": "q--4ubzA5vN3ETaXPSUy3iL8GoLH-iS-OgTclxJsy0Y",
+          "levels": {
+            "accepted": 1,
+            "submitted": "worker",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the worker; chain: SUCCESS; the resource was delivered 1 time."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 4719,
+          "paymentId": "payment-1",
+          "txHash": "e840db5ba5000689ae2369a991e925eea7ec5f5910ac2608b85d6a13d01f4c32",
+          "outcome": "PENDING",
+          "resultCode": null
+        },
+        {
+          "t": 10492,
+          "paymentId": "payment-1",
+          "txHash": "e840db5ba5000689ae2369a991e925eea7ec5f5910ac2608b85d6a13d01f4c32",
+          "outcome": "UNKNOWN",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 2023,
+          "durationMs": 21,
+          "worker": "worker-a",
+          "label": "payment: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 3836,
+          "durationMs": 5583,
+          "worker": "worker-a",
+          "label": "first presentation: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 9419,
+          "durationMs": 1080,
+          "worker": "worker-b",
+          "label": "replay to the other worker: present payment-1 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10499,
+          "durationMs": 8,
+          "worker": "worker-a",
+          "label": "replay to the first worker: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 1011,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 70896 with store memory"
+        },
+        {
+          "t": 2023,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 70916 with store memory"
+        },
+        {
+          "t": 3836,
+          "kind": "client-signed",
+          "detail": "payer signed transaction e840db5ba500… without broadcasting (pull)"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    },
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:55:53.220Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "sqlite",
+        "mode": "pull"
+      },
+      "scenario": {
+        "id": "repeated-credential",
+        "variant": null,
+        "title": "Repeated credential across workers",
+        "invariant": "A credential that one worker accepted is not accepted by the other worker, and the paid resource is delivered once.",
+        "faultSchedule": [
+          "Start worker-a and worker-b, each a separate OS process, store sqlite (one shared file).",
+          "Obtain one challenge and build one pull-mode credential with the official client.",
+          "Present the credential to worker-a, then the identical credential to worker-b, then to worker-a again."
+        ]
+      },
+      "expectation": "pass",
+      "verdict": "pass",
+      "matchesExpectation": true,
+      "summary": "All 5 checks passed.",
+      "checks": [
+        {
+          "id": "first-presentation-accepted",
+          "description": "The first presentation is accepted (otherwise the run proves nothing).",
+          "passed": true,
+          "detail": "worker-a answered 200."
+        },
+        {
+          "id": "single-acceptance",
+          "description": "At most one response across both workers accepts the credential.",
+          "passed": true,
+          "detail": "1 of 3 presentations were accepted (200, 402, 402)."
+        },
+        {
+          "id": "store-level-protection",
+          "description": "The replay is stopped by the store before any second transaction reaches the chain, not only by the ledger's sequence rule.",
+          "passed": true,
+          "detail": "1 sendTransaction call for this transaction reached the chain (answers: PENDING)."
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": true,
+          "detail": "max deliveries per payment: 1."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": true,
+          "detail": "no challenge was delivered more than once."
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 4 responses (1 accepted); workers logged 4 requests (1 accepted) and 1 fulfillments."
+        }
+      ],
+      "observations": [],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "pull",
+          "txHash": "bd7fe00d1afa6522e251f8c37bd899fdb5fb6b4f5168849c88f364bbfb7de271",
+          "challengeId": "6XAIAxteJdg7UGai2hDMjz-Eb-fhKis3ZiDKqYb4XH4",
+          "levels": {
+            "accepted": 1,
+            "submitted": "worker",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the worker; chain: SUCCESS; the resource was delivered 1 time."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 4215,
+          "paymentId": "payment-1",
+          "txHash": "bd7fe00d1afa6522e251f8c37bd899fdb5fb6b4f5168849c88f364bbfb7de271",
+          "outcome": "PENDING",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 2480,
+          "durationMs": 27,
+          "worker": "worker-a",
+          "label": "payment: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 2975,
+          "durationMs": 4594,
+          "worker": "worker-a",
+          "label": "first presentation: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 7569,
+          "durationMs": 21,
+          "worker": "worker-b",
+          "label": "replay to the other worker: present payment-1 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 7590,
+          "durationMs": 7,
+          "worker": "worker-a",
+          "label": "replay to the first worker: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 1181,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 71168 with store sqlite (shared file)"
+        },
+        {
+          "t": 2480,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 71176 with store sqlite (shared file)"
+        },
+        {
+          "t": 2975,
+          "kind": "client-signed",
+          "detail": "payer signed transaction bd7fe00d1afa… without broadcasting (pull)"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    },
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:56:08.260Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "memory",
+        "mode": "push"
+      },
+      "scenario": {
+        "id": "concurrent-submission",
+        "variant": null,
+        "title": "Concurrent submission of one credential to both workers",
+        "invariant": "When the same credential reaches both workers at the same moment, at most one accepts it, in every round.",
+        "faultSchedule": [
+          "Start worker-a and worker-b (store memory).",
+          "Repeat 2 times: build a fresh push-mode credential, then send it to worker-a and worker-b twice each, all four requests in flight together.",
+          "Count acceptances per round. A single round with two acceptances is a failure; zero failures in N rounds is evidence, not proof."
+        ]
+      },
+      "expectation": "fail",
+      "verdict": "fail",
+      "matchesExpectation": true,
+      "summary": "3 of 4 checks failed: single-acceptance-per-round, single-fulfillment, single-fulfillment-per-challenge.",
+      "checks": [
+        {
+          "id": "liveness",
+          "description": "In every round exactly one of the competing requests is accepted (the payment is not lost to the race).",
+          "passed": true,
+          "detail": "0 of 2 rounds had no acceptance."
+        },
+        {
+          "id": "single-acceptance-per-round",
+          "description": "In every round at most one response accepts the credential.",
+          "passed": false,
+          "detail": "2 of 2 rounds had more than one acceptance; accepted per round: 2, 2."
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": false,
+          "detail": "payment-1 delivered 2 times; payment-2 delivered 2 times."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": false,
+          "detail": "challenge HM58jME6e9… delivered 2 times; challenge FP9ucMa37I… delivered 2 times"
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 10 responses (4 accepted); workers logged 10 requests (4 accepted) and 4 fulfillments."
+        }
+      ],
+      "observations": [],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "push",
+          "txHash": "0db2238409696cf9e4589ab408222d7b185862bd186f5ac358fb2489e0de8a09",
+          "challengeId": "HM58jME6e99H8E7kYj7fsnh0N11cYoBpB43GoZm8qlE",
+          "levels": {
+            "accepted": 2,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 2
+          },
+          "note": "2 worker responses accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 2 times. One payment bought more than one delivery."
+        },
+        {
+          "id": "payment-2",
+          "mode": "push",
+          "txHash": "e568d2a60400fed9476fb7277e259aedce5dc1dd7247f76936c917b056ff315b",
+          "challengeId": "FP9ucMa37Ipo9oqNBdnYd20DIV4d1JG1Nh74S2tJRjk",
+          "levels": {
+            "accepted": 2,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 2
+          },
+          "note": "2 worker responses accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 2 times. One payment bought more than one delivery."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 3572,
+          "paymentId": "payment-1",
+          "txHash": "0db2238409696cf9e4589ab408222d7b185862bd186f5ac358fb2489e0de8a09",
+          "outcome": "PENDING",
+          "resultCode": null
+        },
+        {
+          "t": 12492,
+          "paymentId": "payment-2",
+          "txHash": "e568d2a60400fed9476fb7277e259aedce5dc1dd7247f76936c917b056ff315b",
+          "outcome": "PENDING",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 2225,
+          "durationMs": 23,
+          "worker": "worker-a",
+          "label": "round 1: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 10835,
+          "durationMs": 32,
+          "worker": "worker-a",
+          "label": "round 1: concurrent presentation 3 of payment-1 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10836,
+          "durationMs": 42,
+          "worker": "worker-b",
+          "label": "round 1: concurrent presentation 4 of payment-1 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10834,
+          "durationMs": 504,
+          "worker": "worker-a",
+          "label": "round 1: concurrent presentation 1 of payment-1 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 10835,
+          "durationMs": 711,
+          "worker": "worker-b",
+          "label": "round 1: concurrent presentation 2 of payment-1 to worker-b",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 11547,
+          "durationMs": 4,
+          "worker": "worker-b",
+          "label": "round 2: request challenge from worker-b",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 14063,
+          "durationMs": 10,
+          "worker": "worker-b",
+          "label": "round 2: concurrent presentation 4 of payment-2 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-2",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 14063,
+          "durationMs": 11,
+          "worker": "worker-a",
+          "label": "round 2: concurrent presentation 3 of payment-2 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-2",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 14063,
+          "durationMs": 309,
+          "worker": "worker-b",
+          "label": "round 2: concurrent presentation 2 of payment-2 to worker-b",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-2",
+          "detail": null
+        },
+        {
+          "t": 14062,
+          "durationMs": 347,
+          "worker": "worker-a",
+          "label": "round 2: concurrent presentation 1 of payment-2 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-2",
+          "detail": null
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 1090,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 71295 with store memory"
+        },
+        {
+          "t": 2224,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 71303 with store memory"
+        },
+        {
+          "t": 10834,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction 0db223840969… itself (push)"
+        },
+        {
+          "t": 14062,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction e568d2a60400… itself (push)"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    },
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:56:24.313Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "sqlite",
+        "mode": "push"
+      },
+      "scenario": {
+        "id": "concurrent-submission",
+        "variant": null,
+        "title": "Concurrent submission of one credential to both workers",
+        "invariant": "When the same credential reaches both workers at the same moment, at most one accepts it, in every round.",
+        "faultSchedule": [
+          "Start worker-a and worker-b (store sqlite, one shared file).",
+          "Repeat 2 times: build a fresh push-mode credential, then send it to worker-a and worker-b twice each, all four requests in flight together.",
+          "Count acceptances per round. A single round with two acceptances is a failure; zero failures in N rounds is evidence, not proof."
+        ]
+      },
+      "expectation": "pass",
+      "verdict": "pass",
+      "matchesExpectation": true,
+      "summary": "All 4 checks passed.",
+      "checks": [
+        {
+          "id": "liveness",
+          "description": "In every round exactly one of the competing requests is accepted (the payment is not lost to the race).",
+          "passed": true,
+          "detail": "0 of 2 rounds had no acceptance."
+        },
+        {
+          "id": "single-acceptance-per-round",
+          "description": "In every round at most one response accepts the credential.",
+          "passed": true,
+          "detail": "0 of 2 rounds had more than one acceptance; accepted per round: 1, 1."
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": true,
+          "detail": "max deliveries per payment: 1."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": true,
+          "detail": "no challenge was delivered more than once."
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 10 responses (2 accepted); workers logged 10 requests (2 accepted) and 2 fulfillments."
+        }
+      ],
+      "observations": [],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "push",
+          "txHash": "492b9e00c45db0b922b07c23fe01098b60394aad27c30eec721112f44515932a",
+          "challengeId": "G0Ypmqm4a4NdqvxSSkoy-N4L3tSAfu1nmExyRZ-atEw",
+          "levels": {
+            "accepted": 1,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 1 time."
+        },
+        {
+          "id": "payment-2",
+          "mode": "push",
+          "txHash": "56c33f7d96a961ee5a0403cafb40070e0ee9413207381a452ec2560e88b73613",
+          "challengeId": "X_BQ_QihrDcEl28IiLwIlQ9psm7B_25Dqi-zGbr2Qe4",
+          "levels": {
+            "accepted": 1,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 1 time."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 3631,
+          "paymentId": "payment-1",
+          "txHash": "492b9e00c45db0b922b07c23fe01098b60394aad27c30eec721112f44515932a",
+          "outcome": "PENDING",
+          "resultCode": null
+        },
+        {
+          "t": 11794,
+          "paymentId": "payment-2",
+          "txHash": "56c33f7d96a961ee5a0403cafb40070e0ee9413207381a452ec2560e88b73613",
+          "outcome": "PENDING",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 2167,
+          "durationMs": 21,
+          "worker": "worker-a",
+          "label": "round 1: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 10489,
+          "durationMs": 34,
+          "worker": "worker-b",
+          "label": "round 1: concurrent presentation 2 of payment-1 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10489,
+          "durationMs": 36,
+          "worker": "worker-a",
+          "label": "round 1: concurrent presentation 3 of payment-1 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10490,
+          "durationMs": 37,
+          "worker": "worker-b",
+          "label": "round 1: concurrent presentation 4 of payment-1 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10489,
+          "durationMs": 354,
+          "worker": "worker-a",
+          "label": "round 1: concurrent presentation 1 of payment-1 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 10843,
+          "durationMs": 4,
+          "worker": "worker-b",
+          "label": "round 2: request challenge from worker-b",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 14669,
+          "durationMs": 18,
+          "worker": "worker-b",
+          "label": "round 2: concurrent presentation 4 of payment-2 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-2",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 14669,
+          "durationMs": 19,
+          "worker": "worker-a",
+          "label": "round 2: concurrent presentation 3 of payment-2 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-2",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 14669,
+          "durationMs": 26,
+          "worker": "worker-b",
+          "label": "round 2: concurrent presentation 2 of payment-2 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-2",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 14669,
+          "durationMs": 359,
+          "worker": "worker-a",
+          "label": "round 2: concurrent presentation 1 of payment-2 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-2",
+          "detail": null
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 1132,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 71515 with store sqlite (shared file)"
+        },
+        {
+          "t": 2167,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 71537 with store sqlite (shared file)"
+        },
+        {
+          "t": 10489,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction 492b9e00c45d… itself (push)"
+        },
+        {
+          "t": 14669,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction 56c33f7d96a9… itself (push)"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    },
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:56:38.734Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "sqlite",
+        "mode": "push"
+      },
+      "scenario": {
+        "id": "restart-persistence",
+        "variant": null,
+        "title": "Worker restart persistence",
+        "invariant": "A credential consumed before a worker is killed and restarted stays consumed afterwards.",
+        "faultSchedule": [
+          "Start worker-a and worker-b (store sqlite, one shared file).",
+          "Build a push-mode credential and have worker-a accept it.",
+          "Kill worker-a with SIGKILL (no shutdown hooks) and start a new process with the same configuration.",
+          "Present the consumed credential to the restarted worker-a and to worker-b.",
+          "Build a second credential and present it to the restarted worker-a (it must still serve new payments)."
+        ]
+      },
+      "expectation": "pass",
+      "verdict": "pass",
+      "matchesExpectation": true,
+      "summary": "All 5 checks passed.",
+      "checks": [
+        {
+          "id": "accepted-before-restart",
+          "description": "The credential is accepted before the restart.",
+          "passed": true,
+          "detail": "answered 200."
+        },
+        {
+          "id": "stays-consumed",
+          "description": "After the restart the credential is not accepted again by the restarted worker or by the other worker.",
+          "passed": true,
+          "detail": "1 acceptance in total; after restart: worker-a 402, worker-b 402."
+        },
+        {
+          "id": "serves-new-payments",
+          "description": "The restarted worker still accepts a new, valid payment.",
+          "passed": true,
+          "detail": "answered 200."
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": true,
+          "detail": "max deliveries per payment: 1."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": true,
+          "detail": "no challenge was delivered more than once."
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 6 responses (2 accepted); workers logged 6 requests (2 accepted) and 2 fulfillments."
+        }
+      ],
+      "observations": [],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "push",
+          "txHash": "592f64713fe2e39e20c2a69ac113cb06c1d39f4b010046f80a0087caba8d33ae",
+          "challengeId": "R8-PPRInFrv_CPaZj76gZnEcRvsh3LYHFPbtAv95u1o",
+          "levels": {
+            "accepted": 1,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 1 time."
+        },
+        {
+          "id": "payment-2",
+          "mode": "push",
+          "txHash": "b7e454353b36a863ed6ecee82cb5ae065f1af102a6a6d49a587ac58e2bfd551c",
+          "challengeId": "UzeWDX5Ip5wrGtVJbuBohobTeJNF_pGoxn6ax9rQTH0",
+          "levels": {
+            "accepted": 1,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 1 time."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 3659,
+          "paymentId": "payment-1",
+          "txHash": "592f64713fe2e39e20c2a69ac113cb06c1d39f4b010046f80a0087caba8d33ae",
+          "outcome": "PENDING",
+          "resultCode": null
+        },
+        {
+          "t": 11519,
+          "paymentId": "payment-2",
+          "txHash": "b7e454353b36a863ed6ecee82cb5ae065f1af102a6a6d49a587ac58e2bfd551c",
+          "outcome": "PENDING",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 2128,
+          "durationMs": 23,
+          "worker": "worker-a",
+          "label": "first payment: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 8992,
+          "durationMs": 356,
+          "worker": "worker-a",
+          "label": "before restart: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 10393,
+          "durationMs": 33,
+          "worker": "worker-a",
+          "label": "after restart: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10426,
+          "durationMs": 21,
+          "worker": "worker-b",
+          "label": "to the other worker after restart: present payment-1 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 10447,
+          "durationMs": 5,
+          "worker": "worker-a",
+          "label": "second payment: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 13337,
+          "durationMs": 340,
+          "worker": "worker-a",
+          "label": "new payment on restarted worker: present payment-2 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-2",
+          "detail": null
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 1075,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 71703 with store sqlite (shared file)"
+        },
+        {
+          "t": 2128,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 71738 with store sqlite (shared file)"
+        },
+        {
+          "t": 8992,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction 592f64713fe2… itself (push)"
+        },
+        {
+          "t": 9348,
+          "kind": "worker-kill",
+          "detail": "worker-a (pid 71703) killed with SIGKILL"
+        },
+        {
+          "t": 10393,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 71881 with store sqlite (shared file)"
+        },
+        {
+          "t": 10393,
+          "kind": "worker-restart",
+          "detail": "worker-a restarted as pid 71881"
+        },
+        {
+          "t": 13337,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction b7e454353b36… itself (push)"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    },
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:57:23.432Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "sqlite",
+        "mode": "push"
+      },
+      "scenario": {
+        "id": "challenge-consumption",
+        "variant": null,
+        "title": "Challenge consumption",
+        "invariant": "A challenge is accepted at most once, across both workers; a forged or expired challenge is never accepted.",
+        "faultSchedule": [
+          "Start worker-a and worker-b (store sqlite, one shared file).",
+          "Get one challenge and pay it twice with two distinct push-mode credentials (two transactions, one challenge).",
+          "Present the first to worker-a and the second to worker-b, then to worker-a.",
+          "Present a credential whose challenge id was altered by one character to both workers.",
+          "Start worker-c with a 2 second challenge lifetime, wait for it to lapse, present a credential for the lapsed challenge."
+        ]
+      },
+      "expectation": "pass",
+      "verdict": "pass",
+      "matchesExpectation": true,
+      "summary": "All 8 checks passed.",
+      "checks": [
+        {
+          "id": "two-distinct-payments",
+          "description": "The two credentials are distinct payments for the same challenge (otherwise the run only repeats the replay test).",
+          "passed": true,
+          "detail": "challenge 3KvZhTY8Lg…, transactions 91ae3da977… and 40296e337e…."
+        },
+        {
+          "id": "first-accepted",
+          "description": "The first credential is accepted.",
+          "passed": true,
+          "detail": "answered 200."
+        },
+        {
+          "id": "challenge-accepted-once",
+          "description": "The challenge is accepted at most once across both workers.",
+          "passed": true,
+          "detail": "1 acceptance(s); statuses 200, 402, 402."
+        },
+        {
+          "id": "forged-challenge-rejected",
+          "description": "A credential whose challenge id was altered is rejected by both workers.",
+          "passed": true,
+          "detail": "worker-a 402, worker-b 402."
+        },
+        {
+          "id": "expired-challenge-rejected",
+          "description": "A credential for a challenge past its lifetime is refused (402) before anything is broadcast.",
+          "passed": true,
+          "detail": "answered 402; 0 broadcast(s) for its transaction."
+        },
+        {
+          "id": "expiry-control",
+          "description": "The same worker accepts a fresh credential within its lifetime, so the refusal above was about the lapsed challenge.",
+          "passed": true,
+          "detail": "control answered 200."
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": true,
+          "detail": "max deliveries per payment: 1."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": true,
+          "detail": "no challenge was delivered more than once."
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 10 responses (2 accepted); workers logged 10 requests (2 accepted) and 2 fulfillments."
+        }
+      ],
+      "observations": [
+        "Consuming a challenge does not refund or void a second payment made against it: the second transaction is a separate on-chain payment that no worker delivered for. Whether that is acceptable is an operator decision; the report shows it as submitted/confirmed with zero fulfillments."
+      ],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "push",
+          "txHash": "91ae3da977efcd1aa4695d5aacd97f25d60ac79e82c0481de3ba634a64827645",
+          "challengeId": "3KvZhTY8LgSSvQ2wgnmznpmvDTYZz3ZrxJWn6lVv-SA",
+          "levels": {
+            "accepted": 1,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was delivered 1 time."
+        },
+        {
+          "id": "payment-2",
+          "mode": "push",
+          "txHash": "40296e337e5cd7dc72268f838baeeda54dea6d5b28b743e62f8ee3d7d9b99ff2",
+          "challengeId": "3KvZhTY8LgSSvQ2wgnmznpmvDTYZz3ZrxJWn6lVv-SA",
+          "levels": {
+            "accepted": 0,
+            "submitted": "client",
+            "confirmed": "SUCCESS",
+            "fulfilled": 0
+          },
+          "note": "no worker accepted the credential; the transaction was submitted by the client; chain: SUCCESS; the resource was never delivered. Paid on chain but not delivered: needs reconciliation."
+        },
+        {
+          "id": "payment-3",
+          "mode": "pull",
+          "txHash": "34d8b43f8003b7cbc1fe23fa269c6a379f98a297541b530b8b09fa24b6051166",
+          "challengeId": "mJzgswTvxDIxtDlL3aSWgud-5Ap9NHTNH2ibuepqJ1I",
+          "levels": {
+            "accepted": 0,
+            "submitted": null,
+            "confirmed": "NOT_FOUND",
+            "fulfilled": 0
+          },
+          "note": "no worker accepted the credential; no transaction submission was observed; chain: NOT_FOUND; the resource was never delivered."
+        },
+        {
+          "id": "payment-4",
+          "mode": "pull",
+          "txHash": "79f7ee612aec883608d8aaf2df81bf76933d261c536dc89b4bf8478e2c05b530",
+          "challengeId": "ayxO-OA_lU4frnU9AS7DCmUfF-ub510p4QCI4dUiExw",
+          "levels": {
+            "accepted": 1,
+            "submitted": "worker",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the worker; chain: SUCCESS; the resource was delivered 1 time."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 3486,
+          "paymentId": "payment-1",
+          "txHash": "91ae3da977efcd1aa4695d5aacd97f25d60ac79e82c0481de3ba634a64827645",
+          "outcome": "PENDING",
+          "resultCode": null
+        },
+        {
+          "t": 10190,
+          "paymentId": "payment-2",
+          "txHash": "40296e337e5cd7dc72268f838baeeda54dea6d5b28b743e62f8ee3d7d9b99ff2",
+          "outcome": "PENDING",
+          "resultCode": null
+        },
+        {
+          "t": 40247,
+          "paymentId": "payment-4",
+          "txHash": "79f7ee612aec883608d8aaf2df81bf76933d261c536dc89b4bf8478e2c05b530",
+          "outcome": "PENDING",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 2233,
+          "durationMs": 27,
+          "worker": "worker-a",
+          "label": "first payment: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 9002,
+          "durationMs": 347,
+          "worker": "worker-a",
+          "label": "first credential: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 15344,
+          "durationMs": 22,
+          "worker": "worker-b",
+          "label": "second credential, same challenge, other worker: present payment-2 to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-2",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 15366,
+          "durationMs": 6,
+          "worker": "worker-a",
+          "label": "second credential, same challenge, same worker: present payment-2 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-2",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 15372,
+          "durationMs": 4,
+          "worker": "worker-a",
+          "label": "forged challenge id presented to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": null,
+          "detail": "Challenge \"3KvZhTY8LgSSvQ2wgnmznpmvDTYZz3ZrxJWn6lVv-SB\" is invalid: challenge was not issued by this server."
+        },
+        {
+          "t": 15376,
+          "durationMs": 5,
+          "worker": "worker-b",
+          "label": "forged challenge id presented to worker-b",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": null,
+          "detail": "Challenge \"3KvZhTY8LgSSvQ2wgnmznpmvDTYZz3ZrxJWn6lVv-SB\" is invalid: challenge was not issued by this server."
+        },
+        {
+          "t": 16660,
+          "durationMs": 22,
+          "worker": "worker-c",
+          "label": "challenge from worker-c (20 second lifetime)",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 38189,
+          "durationMs": 8,
+          "worker": "worker-c",
+          "label": "present payment-3 after its challenge lapsed",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-3",
+          "detail": "Payment expired at 2026-10-08T08:57:15.420Z."
+        },
+        {
+          "t": 38197,
+          "durationMs": 3,
+          "worker": "worker-c",
+          "label": "fresh challenge from worker-c (control)",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 39394,
+          "durationMs": 4192,
+          "worker": "worker-c",
+          "label": "present payment-4 within its lifetime (control)",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-4",
+          "detail": null
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 1063,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 71934 with store sqlite (shared file)"
+        },
+        {
+          "t": 2233,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 71952 with store sqlite (shared file)"
+        },
+        {
+          "t": 9002,
+          "kind": "client-paid",
+          "detail": "payer broadcast and confirmed transaction 91ae3da977ef… itself (push)"
+        },
+        {
+          "t": 15344,
+          "kind": "client-paid",
+          "detail": "second credential for the same challenge built (40296e337e5c…)"
+        },
+        {
+          "t": 16660,
+          "kind": "worker-start",
+          "detail": "worker-c started as pid 72112 with store sqlite (shared file)"
+        },
+        {
+          "t": 38189,
+          "kind": "wait",
+          "detail": "waited 20.7 s so the 20 second challenge lapsed"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    },
+    {
+      "reportVersion": "1",
+      "kind": "run",
+      "generatedAt": "2026-10-08T08:57:41.260Z",
+      "command": "node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt",
+      "environment": {
+        "node": "v24.19.0",
+        "platform": "linux",
+        "arch": "x64",
+        "chargeguardRunner": "0.1.0",
+        "sdk": {
+          "@stellar/mpp": "0.7.1",
+          "mppx": "0.6.31",
+          "@stellar/stellar-sdk": "15.1.0"
+        }
+      },
+      "evidenceClass": "testnet settlement",
+      "chain": {
+        "kind": "testnet",
+        "description": "Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org"
+      },
+      "deployment": {
+        "workers": 2,
+        "store": "sqlite",
+        "mode": "pull"
+      },
+      "scenario": {
+        "id": "storage-unavailable",
+        "variant": null,
+        "title": "Storage unavailable: fail closed, never fall back",
+        "invariant": "When the shared store cannot answer, a worker refuses (503) and never accepts, never delivers, and never falls back to a local in-memory store; a worker with no store configuration refuses to start.",
+        "faultSchedule": [
+          "Start a worker with no store setting, with an empty one and with an unknown backend: each must exit with the configuration refusal code (78).",
+          "Start a worker pointing at a sqlite file that does not exist: it must refuse to start (70) and must not create the file.",
+          "Start worker-a and worker-b on one shared sqlite file. Build a pull-mode credential.",
+          "Hold an exclusive write lock on the database from the runner, present the credential to both workers (expect 503, no acceptance, no broadcast), release the lock, present again (expect it to be accepted once: the failed attempts did not consume it).",
+          "Build a second credential, delete the database file under the running workers, present it (expect 503 and an unhealthy /health), then try to restart a worker on the missing file (expect refusal)."
+        ]
+      },
+      "expectation": "pass",
+      "verdict": "pass",
+      "matchesExpectation": true,
+      "summary": "All 10 checks passed.",
+      "checks": [
+        {
+          "id": "missing-store-config-refuses-to-start",
+          "description": "A worker with no store configuration (unset, empty or unknown) refuses to start with exit code 78.",
+          "passed": true,
+          "detail": "unset: exit 78; empty: exit 78; unknown backend: exit 78 | message: chargeguard worker refused to start: no store configured: set CHARGEGUARD_STORE to 'sqlite:<path>' (shared, durable) or, for a demonstration of the failure, 'memory'. Refusing to start without one."
+        },
+        {
+          "id": "missing-database-refuses-to-start",
+          "description": "A worker pointed at a sqlite file that does not exist refuses to start (exit 70) instead of creating an empty private store.",
+          "passed": true,
+          "detail": "exit 70: chargeguard worker refused to start: sqlite store file does not exist: /tmp/chargeguard-run-wJRkVi/does-not-exist.db"
+        },
+        {
+          "id": "locked-store-fails-closed",
+          "description": "While the database is locked both workers answer 503 and accept nothing.",
+          "passed": true,
+          "detail": "worker-a 503, worker-b 503 (store_unavailable (busy))."
+        },
+        {
+          "id": "locked-store-no-broadcast",
+          "description": "No transaction for the credential reaches the chain while the store cannot record the claim.",
+          "passed": true,
+          "detail": "0 new sendTransaction call(s) while locked."
+        },
+        {
+          "id": "locked-store-recovers",
+          "description": "After the lock is released the same credential is accepted once (the failed attempts did not consume it) and not twice.",
+          "passed": true,
+          "detail": "after unlock: worker-b 200, then worker-a replay 402."
+        },
+        {
+          "id": "removed-store-fails-closed",
+          "description": "With the database file deleted both workers answer 503 and accept nothing (no silent fall back to a local map).",
+          "passed": true,
+          "detail": "worker-a 503, worker-b 503."
+        },
+        {
+          "id": "removed-store-reports-unhealthy",
+          "description": "The worker's health endpoint reports the store as unhealthy (503).",
+          "passed": true,
+          "detail": "GET /__chargeguard/health answered 503."
+        },
+        {
+          "id": "removed-store-no-restart",
+          "description": "A worker restarted against the missing database refuses to start (exit 70).",
+          "passed": true,
+          "detail": "exit 70"
+        },
+        {
+          "id": "single-fulfillment",
+          "description": "Each payment is delivered at most once (counted from the workers' fulfillment logs).",
+          "passed": true,
+          "detail": "max deliveries per payment: 1."
+        },
+        {
+          "id": "single-fulfillment-per-challenge",
+          "description": "Each challenge is delivered against at most once.",
+          "passed": true,
+          "detail": "no challenge was delivered more than once."
+        },
+        {
+          "id": "evidence-consistent",
+          "description": "Client-observed responses match the workers' own request and fulfillment logs.",
+          "passed": true,
+          "detail": "client saw 9 responses (1 accepted); workers logged 9 requests (1 accepted) and 1 fulfillments."
+        }
+      ],
+      "observations": [
+        "Challenge issuance does not touch the store (the id is an HMAC), so a worker with a locked store still issues challenges: it answered 402. Only verification needs the store."
+      ],
+      "payments": [
+        {
+          "id": "payment-1",
+          "mode": "pull",
+          "txHash": "c80422fc96104129fe76e19a43e0ecc993d89c5abb73756250dc57e96a620a4e",
+          "challengeId": "R0M40meC4BaCVG80fkiAHAWxrBdtjFt8ydLeGhtxLIU",
+          "levels": {
+            "accepted": 1,
+            "submitted": "worker",
+            "confirmed": "SUCCESS",
+            "fulfilled": 1
+          },
+          "note": "1 worker response accepted the credential; the transaction was submitted by the worker; chain: SUCCESS; the resource was delivered 1 time."
+        },
+        {
+          "id": "payment-2",
+          "mode": "pull",
+          "txHash": "765c6cd768e9a437368be8c66846d30cf3c43aa41eb07f1db01c2edbe08e8624",
+          "challengeId": "QJYkiu00Uyh8biv-yOwAHvEqg-LjTPJOmLEzuGp0qTs",
+          "levels": {
+            "accepted": 0,
+            "submitted": null,
+            "confirmed": "NOT_FOUND",
+            "fulfilled": 0
+          },
+          "note": "no worker accepted the credential; no transaction submission was observed; chain: NOT_FOUND; the resource was never delivered."
+        }
+      ],
+      "broadcasts": [
+        {
+          "t": 9121,
+          "paymentId": "payment-1",
+          "txHash": "c80422fc96104129fe76e19a43e0ecc993d89c5abb73756250dc57e96a620a4e",
+          "outcome": "PENDING",
+          "resultCode": null
+        }
+      ],
+      "timeline": [
+        {
+          "t": 6478,
+          "durationMs": 22,
+          "worker": "worker-a",
+          "label": "payment before the lock: request challenge from worker-a",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 7644,
+          "durationMs": 266,
+          "worker": "worker-a",
+          "label": "while locked: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 503,
+          "outcome": "unavailable",
+          "paymentId": "payment-1",
+          "detail": "store_unavailable (busy)"
+        },
+        {
+          "t": 7910,
+          "durationMs": 280,
+          "worker": "worker-b",
+          "label": "while locked: present payment-1 to worker-b",
+          "request": "credential",
+          "status": 503,
+          "outcome": "unavailable",
+          "paymentId": "payment-1",
+          "detail": "store_unavailable (busy)"
+        },
+        {
+          "t": 8190,
+          "durationMs": 3,
+          "worker": "worker-a",
+          "label": "challenge request while locked (stateless, should still work)",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 8194,
+          "durationMs": 6603,
+          "worker": "worker-b",
+          "label": "after unlock: present payment-1 to worker-b",
+          "request": "credential",
+          "status": 200,
+          "outcome": "accepted",
+          "paymentId": "payment-1",
+          "detail": null
+        },
+        {
+          "t": 14797,
+          "durationMs": 5,
+          "worker": "worker-a",
+          "label": "after unlock, replay: present payment-1 to worker-a",
+          "request": "credential",
+          "status": 402,
+          "outcome": "rejected",
+          "paymentId": "payment-1",
+          "detail": "Payment verification failed."
+        },
+        {
+          "t": 14802,
+          "durationMs": 4,
+          "worker": "worker-b",
+          "label": "payment before the file is removed: request challenge from worker-b",
+          "request": "challenge",
+          "status": 402,
+          "outcome": "challenge",
+          "paymentId": null,
+          "detail": "Payment is required (ChargeGuard reference resource)."
+        },
+        {
+          "t": 15816,
+          "durationMs": 5,
+          "worker": "worker-a",
+          "label": "database removed: present payment-2 to worker-a",
+          "request": "credential",
+          "status": 503,
+          "outcome": "unavailable",
+          "paymentId": "payment-2",
+          "detail": "store_unavailable (removed)"
+        },
+        {
+          "t": 15821,
+          "durationMs": 6,
+          "worker": "worker-b",
+          "label": "database removed: present payment-2 to worker-b",
+          "request": "credential",
+          "status": 503,
+          "outcome": "unavailable",
+          "paymentId": "payment-2",
+          "detail": "store_unavailable (removed)"
+        }
+      ],
+      "faultEvents": [
+        {
+          "t": 3226,
+          "kind": "start-without-store",
+          "detail": "worker started with CHARGEGUARD_STORE unset, empty, and set to an unknown backend"
+        },
+        {
+          "t": 5414,
+          "kind": "worker-start",
+          "detail": "worker-a started as pid 72563 with store sqlite (shared file)"
+        },
+        {
+          "t": 6478,
+          "kind": "worker-start",
+          "detail": "worker-b started as pid 72603 with store sqlite (shared file)"
+        },
+        {
+          "t": 7644,
+          "kind": "client-signed",
+          "detail": "payer signed transaction c80422fc9610… without broadcasting (pull)"
+        },
+        {
+          "t": 7644,
+          "kind": "lock-database",
+          "detail": "runner holds BEGIN EXCLUSIVE on the shared database"
+        },
+        {
+          "t": 8194,
+          "kind": "unlock-database",
+          "detail": "runner released the lock"
+        },
+        {
+          "t": 15816,
+          "kind": "client-signed",
+          "detail": "payer signed transaction 765c6cd768e9… without broadcasting (pull)"
+        },
+        {
+          "t": 15816,
+          "kind": "remove-database",
+          "detail": "shared database file deleted while both workers keep running"
+        }
+      ],
+      "limits": [
+        "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+        "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+        "Payment channels are out of scope.",
+        "Testnet is a shared network with its own latency; a run shows what happened once."
+      ]
+    }
+  ],
+  "totals": {
+    "runs": 9,
+    "pass": 6,
+    "fail": 3,
+    "inconclusive": 0,
+    "matchedExpectation": 9
+  },
+  "limits": [
+    "A finite number of runs is evidence, not a proof: this report does not show linearizability or exactly-once delivery.",
+    "Only the two-worker reference deployment shape of this runner was exercised, not your own server code.",
+    "Payment channels are out of scope."
+  ]
+}

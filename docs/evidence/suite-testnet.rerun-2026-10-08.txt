@@ -1,0 +1,898 @@
+ChargeGuard suite report v1  (testnet settlement)
+Command   : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Generated : 2026-10-08T08:57:41.262Z
+Environment: node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+
+scenario                                          store   mode  verdict       expected  matches
+repeated-credential                               memory  push  fail          fail      yes
+repeated-credential                               sqlite  push  pass          pass      yes
+repeated-credential                               memory  pull  fail          fail      yes
+repeated-credential                               sqlite  pull  pass          pass      yes
+concurrent-submission                             memory  push  fail          fail      yes
+concurrent-submission                             sqlite  push  pass          pass      yes
+restart-persistence                               sqlite  push  pass          pass      yes
+challenge-consumption                             sqlite  push  pass          pass      yes
+storage-unavailable                               sqlite  pull  pass          pass      yes
+
+Totals: 9 runs; pass 6, fail 3, inconclusive 0; 9 matched their expectation.
+A 'fail' on a control run (isolated memory stores) is the demonstration, not a defect in the runner.
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Repeated credential across workers  (repeated-credential)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=memory, credential mode=push
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:55:23.500Z
+
+VERDICT: FAIL   (expected FAIL: as expected)
+  4 of 5 checks failed: single-acceptance, store-level-protection, single-fulfillment,
+  single-fulfillment-per-challenge.
+
+Invariant under test:
+  A credential that one worker accepted is not accepted by the other worker, and the paid resource
+  is delivered once.
+
+Fault schedule (planned):
+  1. Start worker-a and worker-b, each a separate OS process, store memory (one private map per
+  process).
+  2. Obtain one challenge and build one push-mode credential with the official client.
+  3. Present the credential to worker-a, then the identical credential to worker-b, then to worker-a
+  again.
+
+Checks:
+  [pass] first-presentation-accepted
+         The first presentation is accepted (otherwise the run proves nothing).
+         -> worker-a answered 200.
+  [FAIL] single-acceptance
+         At most one response across both workers accepts the credential.
+         -> 2 of 3 presentations were accepted (200, 200, 402).
+  [FAIL] store-level-protection
+         The replay is stopped by the store before any second transaction reaches the chain, not
+         only by the ledger's sequence rule.
+         -> push mode: the chain cannot refuse a repeated hash, so the store is the only defence; 2
+         acceptances.
+  [FAIL] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> payment-1 delivered 2 times.
+  [FAIL] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> challenge CYO2FD2dVG… delivered 2 times
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 4 responses (2 accepted); workers logged 4 requests (2 accepted) and 2
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  push  2         client     SUCCESS    2
+  payment-1 (d14f3214fc9d…): 2 worker responses accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 2 times. One payment bought
+  more than one delivery.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +3426   ms  payment-1  PENDING     d14f3214fc9d…
+
+Fault and harness events:
+  +1115   ms  worker-start       worker-a started as pid 70657 with store memory
+  +2254   ms  worker-start       worker-b started as pid 70695 with store memory
+  +6509   ms  client-paid        payer broadcast and confirmed transaction d14f3214fc9d… itself (push)
+
+Timeline (client view, one line per request):
+  +2256   ms  worker-a  402 challenge   payment: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +6509   ms  worker-a  200 accepted    first presentation: present payment-1 to worker-a
+  +6861   ms  worker-b  200 accepted    replay to the other worker: present payment-1 to worker-b
+  +7211   ms  worker-a  402 rejected    replay to the first worker: present payment-1 to worker-a  [Payment verification failed.]
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Repeated credential across workers  (repeated-credential)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=sqlite, credential mode=push
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:55:34.208Z
+
+VERDICT: PASS   (expected PASS: as expected)
+  All 5 checks passed.
+
+Invariant under test:
+  A credential that one worker accepted is not accepted by the other worker, and the paid resource
+  is delivered once.
+
+Fault schedule (planned):
+  1. Start worker-a and worker-b, each a separate OS process, store sqlite (one shared file).
+  2. Obtain one challenge and build one push-mode credential with the official client.
+  3. Present the credential to worker-a, then the identical credential to worker-b, then to worker-a
+  again.
+
+Checks:
+  [pass] first-presentation-accepted
+         The first presentation is accepted (otherwise the run proves nothing).
+         -> worker-a answered 200.
+  [pass] single-acceptance
+         At most one response across both workers accepts the credential.
+         -> 1 of 3 presentations were accepted (200, 402, 402).
+  [pass] store-level-protection
+         The replay is stopped by the store before any second transaction reaches the chain, not
+         only by the ledger's sequence rule.
+         -> push mode: the chain cannot refuse a repeated hash, so the store is the only defence; 1
+         acceptance.
+  [pass] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> max deliveries per payment: 1.
+  [pass] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> no challenge was delivered more than once.
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 4 responses (1 accepted); workers logged 4 requests (1 accepted) and 1
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  push  1         client     SUCCESS    1
+  payment-1 (03cafa1f92a5…): 1 worker response accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 1 time.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +3075   ms  payment-1  PENDING     03cafa1f92a5…
+
+Fault and harness events:
+  +1092   ms  worker-start       worker-a started as pid 70772 with store sqlite (shared file)
+  +2103   ms  worker-start       worker-b started as pid 70792 with store sqlite (shared file)
+  +9974   ms  client-paid        payer broadcast and confirmed transaction 03cafa1f92a5… itself (push)
+
+Timeline (client view, one line per request):
+  +2103   ms  worker-a  402 challenge   payment: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +9974   ms  worker-a  200 accepted    first presentation: present payment-1 to worker-a
+  +10393  ms  worker-b  402 rejected    replay to the other worker: present payment-1 to worker-b  [Payment verification failed.]
+  +10414  ms  worker-a  402 rejected    replay to the first worker: present payment-1 to worker-a  [Payment verification failed.]
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Repeated credential across workers  (repeated-credential)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=memory, credential mode=pull
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:55:45.308Z
+
+VERDICT: FAIL   (expected FAIL: as expected)
+  1 of 5 checks failed: store-level-protection.
+
+Invariant under test:
+  A credential that one worker accepted is not accepted by the other worker, and the paid resource
+  is delivered once.
+
+Fault schedule (planned):
+  1. Start worker-a and worker-b, each a separate OS process, store memory (one private map per
+  process).
+  2. Obtain one challenge and build one pull-mode credential with the official client.
+  3. Present the credential to worker-a, then the identical credential to worker-b, then to worker-a
+  again.
+
+Checks:
+  [pass] first-presentation-accepted
+         The first presentation is accepted (otherwise the run proves nothing).
+         -> worker-a answered 200.
+  [pass] single-acceptance
+         At most one response across both workers accepts the credential.
+         -> 1 of 3 presentations were accepted (200, 402, 402).
+  [FAIL] store-level-protection
+         The replay is stopped by the store before any second transaction reaches the chain, not
+         only by the ledger's sequence rule.
+         -> 2 sendTransaction calls for this transaction reached the chain (answers: PENDING,
+         UNKNOWN).
+  [pass] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> max deliveries per payment: 1.
+  [pass] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> no challenge was delivered more than once.
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 4 responses (1 accepted); workers logged 4 requests (1 accepted) and 1
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  pull  1         worker     SUCCESS    1
+  payment-1 (e840db5ba500…): 1 worker response accepted the credential; the transaction was
+  submitted by the worker; chain: SUCCESS; the resource was delivered 1 time.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +4719   ms  payment-1  PENDING     e840db5ba500…
+  +10492  ms  payment-1  UNKNOWN     e840db5ba500…
+
+Fault and harness events:
+  +1011   ms  worker-start       worker-a started as pid 70896 with store memory
+  +2023   ms  worker-start       worker-b started as pid 70916 with store memory
+  +3836   ms  client-signed      payer signed transaction e840db5ba500… without broadcasting (pull)
+
+Timeline (client view, one line per request):
+  +2023   ms  worker-a  402 challenge   payment: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +3836   ms  worker-a  200 accepted    first presentation: present payment-1 to worker-a
+  +9419   ms  worker-b  402 rejected    replay to the other worker: present payment-1 to worker-b  [Payment verification failed.]
+  +10499  ms  worker-a  402 rejected    replay to the first worker: present payment-1 to worker-a  [Payment verification failed.]
+
+Observations (reported, not pass/fail):
+  - The second worker's broadcast of the same signed transaction was refused by the network
+  (sequence number already used). The deployment was saved by the ledger, not by its store.
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Repeated credential across workers  (repeated-credential)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=sqlite, credential mode=pull
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:55:53.220Z
+
+VERDICT: PASS   (expected PASS: as expected)
+  All 5 checks passed.
+
+Invariant under test:
+  A credential that one worker accepted is not accepted by the other worker, and the paid resource
+  is delivered once.
+
+Fault schedule (planned):
+  1. Start worker-a and worker-b, each a separate OS process, store sqlite (one shared file).
+  2. Obtain one challenge and build one pull-mode credential with the official client.
+  3. Present the credential to worker-a, then the identical credential to worker-b, then to worker-a
+  again.
+
+Checks:
+  [pass] first-presentation-accepted
+         The first presentation is accepted (otherwise the run proves nothing).
+         -> worker-a answered 200.
+  [pass] single-acceptance
+         At most one response across both workers accepts the credential.
+         -> 1 of 3 presentations were accepted (200, 402, 402).
+  [pass] store-level-protection
+         The replay is stopped by the store before any second transaction reaches the chain, not
+         only by the ledger's sequence rule.
+         -> 1 sendTransaction call for this transaction reached the chain (answers: PENDING).
+  [pass] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> max deliveries per payment: 1.
+  [pass] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> no challenge was delivered more than once.
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 4 responses (1 accepted); workers logged 4 requests (1 accepted) and 1
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  pull  1         worker     SUCCESS    1
+  payment-1 (bd7fe00d1afa…): 1 worker response accepted the credential; the transaction was
+  submitted by the worker; chain: SUCCESS; the resource was delivered 1 time.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +4215   ms  payment-1  PENDING     bd7fe00d1afa…
+
+Fault and harness events:
+  +1181   ms  worker-start       worker-a started as pid 71168 with store sqlite (shared file)
+  +2480   ms  worker-start       worker-b started as pid 71176 with store sqlite (shared file)
+  +2975   ms  client-signed      payer signed transaction bd7fe00d1afa… without broadcasting (pull)
+
+Timeline (client view, one line per request):
+  +2480   ms  worker-a  402 challenge   payment: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +2975   ms  worker-a  200 accepted    first presentation: present payment-1 to worker-a
+  +7569   ms  worker-b  402 rejected    replay to the other worker: present payment-1 to worker-b  [Payment verification failed.]
+  +7590   ms  worker-a  402 rejected    replay to the first worker: present payment-1 to worker-a  [Payment verification failed.]
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Concurrent submission of one credential to both workers  (concurrent-submission)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=memory, credential mode=push
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:56:08.260Z
+
+VERDICT: FAIL   (expected FAIL: as expected)
+  3 of 4 checks failed: single-acceptance-per-round, single-fulfillment,
+  single-fulfillment-per-challenge.
+
+Invariant under test:
+  When the same credential reaches both workers at the same moment, at most one accepts it, in every
+  round.
+
+Fault schedule (planned):
+  1. Start worker-a and worker-b (store memory).
+  2. Repeat 2 times: build a fresh push-mode credential, then send it to worker-a and worker-b twice
+  each, all four requests in flight together.
+  3. Count acceptances per round. A single round with two acceptances is a failure; zero failures in
+  N rounds is evidence, not proof.
+
+Checks:
+  [pass] liveness
+         In every round exactly one of the competing requests is accepted (the payment is not lost
+         to the race).
+         -> 0 of 2 rounds had no acceptance.
+  [FAIL] single-acceptance-per-round
+         In every round at most one response accepts the credential.
+         -> 2 of 2 rounds had more than one acceptance; accepted per round: 2, 2.
+  [FAIL] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> payment-1 delivered 2 times; payment-2 delivered 2 times.
+  [FAIL] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> challenge HM58jME6e9… delivered 2 times; challenge FP9ucMa37I… delivered 2 times
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 10 responses (4 accepted); workers logged 10 requests (4 accepted) and 4
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  push  2         client     SUCCESS    2
+  payment-2  push  2         client     SUCCESS    2
+  payment-1 (0db223840969…): 2 worker responses accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 2 times. One payment bought
+  more than one delivery.
+  payment-2 (e568d2a60400…): 2 worker responses accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 2 times. One payment bought
+  more than one delivery.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +3572   ms  payment-1  PENDING     0db223840969…
+  +12492  ms  payment-2  PENDING     e568d2a60400…
+
+Fault and harness events:
+  +1090   ms  worker-start       worker-a started as pid 71295 with store memory
+  +2224   ms  worker-start       worker-b started as pid 71303 with store memory
+  +10834  ms  client-paid        payer broadcast and confirmed transaction 0db223840969… itself (push)
+  +14062  ms  client-paid        payer broadcast and confirmed transaction e568d2a60400… itself (push)
+
+Timeline (client view, one line per request):
+  +2225   ms  worker-a  402 challenge   round 1: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +10835  ms  worker-a  402 rejected    round 1: concurrent presentation 3 of payment-1 to worker-a  [Payment verification failed.]
+  +10836  ms  worker-b  402 rejected    round 1: concurrent presentation 4 of payment-1 to worker-b  [Payment verification failed.]
+  +10834  ms  worker-a  200 accepted    round 1: concurrent presentation 1 of payment-1 to worker-a
+  +10835  ms  worker-b  200 accepted    round 1: concurrent presentation 2 of payment-1 to worker-b
+  +11547  ms  worker-b  402 challenge   round 2: request challenge from worker-b  [Payment is required (ChargeGuard reference resource).]
+  +14063  ms  worker-b  402 rejected    round 2: concurrent presentation 4 of payment-2 to worker-b  [Payment verification failed.]
+  +14063  ms  worker-a  402 rejected    round 2: concurrent presentation 3 of payment-2 to worker-a  [Payment verification failed.]
+  +14063  ms  worker-b  200 accepted    round 2: concurrent presentation 2 of payment-2 to worker-b
+  +14062  ms  worker-a  200 accepted    round 2: concurrent presentation 1 of payment-2 to worker-a
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Concurrent submission of one credential to both workers  (concurrent-submission)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=sqlite, credential mode=push
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:56:24.313Z
+
+VERDICT: PASS   (expected PASS: as expected)
+  All 4 checks passed.
+
+Invariant under test:
+  When the same credential reaches both workers at the same moment, at most one accepts it, in every
+  round.
+
+Fault schedule (planned):
+  1. Start worker-a and worker-b (store sqlite, one shared file).
+  2. Repeat 2 times: build a fresh push-mode credential, then send it to worker-a and worker-b twice
+  each, all four requests in flight together.
+  3. Count acceptances per round. A single round with two acceptances is a failure; zero failures in
+  N rounds is evidence, not proof.
+
+Checks:
+  [pass] liveness
+         In every round exactly one of the competing requests is accepted (the payment is not lost
+         to the race).
+         -> 0 of 2 rounds had no acceptance.
+  [pass] single-acceptance-per-round
+         In every round at most one response accepts the credential.
+         -> 0 of 2 rounds had more than one acceptance; accepted per round: 1, 1.
+  [pass] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> max deliveries per payment: 1.
+  [pass] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> no challenge was delivered more than once.
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 10 responses (2 accepted); workers logged 10 requests (2 accepted) and 2
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  push  1         client     SUCCESS    1
+  payment-2  push  1         client     SUCCESS    1
+  payment-1 (492b9e00c45d…): 1 worker response accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 1 time.
+  payment-2 (56c33f7d96a9…): 1 worker response accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 1 time.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +3631   ms  payment-1  PENDING     492b9e00c45d…
+  +11794  ms  payment-2  PENDING     56c33f7d96a9…
+
+Fault and harness events:
+  +1132   ms  worker-start       worker-a started as pid 71515 with store sqlite (shared file)
+  +2167   ms  worker-start       worker-b started as pid 71537 with store sqlite (shared file)
+  +10489  ms  client-paid        payer broadcast and confirmed transaction 492b9e00c45d… itself (push)
+  +14669  ms  client-paid        payer broadcast and confirmed transaction 56c33f7d96a9… itself (push)
+
+Timeline (client view, one line per request):
+  +2167   ms  worker-a  402 challenge   round 1: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +10489  ms  worker-b  402 rejected    round 1: concurrent presentation 2 of payment-1 to worker-b  [Payment verification failed.]
+  +10489  ms  worker-a  402 rejected    round 1: concurrent presentation 3 of payment-1 to worker-a  [Payment verification failed.]
+  +10490  ms  worker-b  402 rejected    round 1: concurrent presentation 4 of payment-1 to worker-b  [Payment verification failed.]
+  +10489  ms  worker-a  200 accepted    round 1: concurrent presentation 1 of payment-1 to worker-a
+  +10843  ms  worker-b  402 challenge   round 2: request challenge from worker-b  [Payment is required (ChargeGuard reference resource).]
+  +14669  ms  worker-b  402 rejected    round 2: concurrent presentation 4 of payment-2 to worker-b  [Payment verification failed.]
+  +14669  ms  worker-a  402 rejected    round 2: concurrent presentation 3 of payment-2 to worker-a  [Payment verification failed.]
+  +14669  ms  worker-b  402 rejected    round 2: concurrent presentation 2 of payment-2 to worker-b  [Payment verification failed.]
+  +14669  ms  worker-a  200 accepted    round 2: concurrent presentation 1 of payment-2 to worker-a
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Worker restart persistence  (restart-persistence)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=sqlite, credential mode=push
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:56:38.734Z
+
+VERDICT: PASS   (expected PASS: as expected)
+  All 5 checks passed.
+
+Invariant under test:
+  A credential consumed before a worker is killed and restarted stays consumed afterwards.
+
+Fault schedule (planned):
+  1. Start worker-a and worker-b (store sqlite, one shared file).
+  2. Build a push-mode credential and have worker-a accept it.
+  3. Kill worker-a with SIGKILL (no shutdown hooks) and start a new process with the same
+  configuration.
+  4. Present the consumed credential to the restarted worker-a and to worker-b.
+  5. Build a second credential and present it to the restarted worker-a (it must still serve new
+  payments).
+
+Checks:
+  [pass] accepted-before-restart
+         The credential is accepted before the restart.
+         -> answered 200.
+  [pass] stays-consumed
+         After the restart the credential is not accepted again by the restarted worker or by the
+         other worker.
+         -> 1 acceptance in total; after restart: worker-a 402, worker-b 402.
+  [pass] serves-new-payments
+         The restarted worker still accepts a new, valid payment.
+         -> answered 200.
+  [pass] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> max deliveries per payment: 1.
+  [pass] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> no challenge was delivered more than once.
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 6 responses (2 accepted); workers logged 6 requests (2 accepted) and 2
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  push  1         client     SUCCESS    1
+  payment-2  push  1         client     SUCCESS    1
+  payment-1 (592f64713fe2…): 1 worker response accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 1 time.
+  payment-2 (b7e454353b36…): 1 worker response accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 1 time.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +3659   ms  payment-1  PENDING     592f64713fe2…
+  +11519  ms  payment-2  PENDING     b7e454353b36…
+
+Fault and harness events:
+  +1075   ms  worker-start       worker-a started as pid 71703 with store sqlite (shared file)
+  +2128   ms  worker-start       worker-b started as pid 71738 with store sqlite (shared file)
+  +8992   ms  client-paid        payer broadcast and confirmed transaction 592f64713fe2… itself (push)
+  +9348   ms  worker-kill        worker-a (pid 71703) killed with SIGKILL
+  +10393  ms  worker-start       worker-a started as pid 71881 with store sqlite (shared file)
+  +10393  ms  worker-restart     worker-a restarted as pid 71881
+  +13337  ms  client-paid        payer broadcast and confirmed transaction b7e454353b36… itself (push)
+
+Timeline (client view, one line per request):
+  +2128   ms  worker-a  402 challenge   first payment: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +8992   ms  worker-a  200 accepted    before restart: present payment-1 to worker-a
+  +10393  ms  worker-a  402 rejected    after restart: present payment-1 to worker-a  [Payment verification failed.]
+  +10426  ms  worker-b  402 rejected    to the other worker after restart: present payment-1 to worker-b  [Payment verification failed.]
+  +10447  ms  worker-a  402 challenge   second payment: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +13337  ms  worker-a  200 accepted    new payment on restarted worker: present payment-2 to worker-a
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Challenge consumption  (challenge-consumption)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=sqlite, credential mode=push
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:57:23.432Z
+
+VERDICT: PASS   (expected PASS: as expected)
+  All 8 checks passed.
+
+Invariant under test:
+  A challenge is accepted at most once, across both workers; a forged or expired challenge is never
+  accepted.
+
+Fault schedule (planned):
+  1. Start worker-a and worker-b (store sqlite, one shared file).
+  2. Get one challenge and pay it twice with two distinct push-mode credentials (two transactions,
+  one challenge).
+  3. Present the first to worker-a and the second to worker-b, then to worker-a.
+  4. Present a credential whose challenge id was altered by one character to both workers.
+  5. Start worker-c with a 2 second challenge lifetime, wait for it to lapse, present a credential
+  for the lapsed challenge.
+
+Checks:
+  [pass] two-distinct-payments
+         The two credentials are distinct payments for the same challenge (otherwise the run only
+         repeats the replay test).
+         -> challenge 3KvZhTY8Lg…, transactions 91ae3da977… and 40296e337e….
+  [pass] first-accepted
+         The first credential is accepted.
+         -> answered 200.
+  [pass] challenge-accepted-once
+         The challenge is accepted at most once across both workers.
+         -> 1 acceptance(s); statuses 200, 402, 402.
+  [pass] forged-challenge-rejected
+         A credential whose challenge id was altered is rejected by both workers.
+         -> worker-a 402, worker-b 402.
+  [pass] expired-challenge-rejected
+         A credential for a challenge past its lifetime is refused (402) before anything is
+         broadcast.
+         -> answered 402; 0 broadcast(s) for its transaction.
+  [pass] expiry-control
+         The same worker accepts a fresh credential within its lifetime, so the refusal above was
+         about the lapsed challenge.
+         -> control answered 200.
+  [pass] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> max deliveries per payment: 1.
+  [pass] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> no challenge was delivered more than once.
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 10 responses (2 accepted); workers logged 10 requests (2 accepted) and 2
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  push  1         client     SUCCESS    1
+  payment-2  push  0         client     SUCCESS    0
+  payment-3  pull  0         -          NOT_FOUND  0
+  payment-4  pull  1         worker     SUCCESS    1
+  payment-1 (91ae3da977ef…): 1 worker response accepted the credential; the transaction was
+  submitted by the client; chain: SUCCESS; the resource was delivered 1 time.
+  payment-2 (40296e337e5c…): no worker accepted the credential; the transaction was submitted by the
+  client; chain: SUCCESS; the resource was never delivered. Paid on chain but not delivered: needs
+  reconciliation.
+  payment-3 (34d8b43f8003…): no worker accepted the credential; no transaction submission was
+  observed; chain: NOT_FOUND; the resource was never delivered.
+  payment-4 (79f7ee612aec…): 1 worker response accepted the credential; the transaction was
+  submitted by the worker; chain: SUCCESS; the resource was delivered 1 time.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +3486   ms  payment-1  PENDING     91ae3da977ef…
+  +10190  ms  payment-2  PENDING     40296e337e5c…
+  +40247  ms  payment-4  PENDING     79f7ee612aec…
+
+Fault and harness events:
+  +1063   ms  worker-start       worker-a started as pid 71934 with store sqlite (shared file)
+  +2233   ms  worker-start       worker-b started as pid 71952 with store sqlite (shared file)
+  +9002   ms  client-paid        payer broadcast and confirmed transaction 91ae3da977ef… itself (push)
+  +15344  ms  client-paid        second credential for the same challenge built (40296e337e5c…)
+  +16660  ms  worker-start       worker-c started as pid 72112 with store sqlite (shared file)
+  +38189  ms  wait               waited 20.7 s so the 20 second challenge lapsed
+
+Timeline (client view, one line per request):
+  +2233   ms  worker-a  402 challenge   first payment: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +9002   ms  worker-a  200 accepted    first credential: present payment-1 to worker-a
+  +15344  ms  worker-b  402 rejected    second credential, same challenge, other worker: present payment-2 to worker-b  [Payment verification failed.]
+  +15366  ms  worker-a  402 rejected    second credential, same challenge, same worker: present payment-2 to worker-a  [Payment verification failed.]
+  +15372  ms  worker-a  402 rejected    forged challenge id presented to worker-a  [Challenge "3KvZhTY8LgSSvQ2wgnmznpmvDTYZz3ZrxJWn6lVv-SB" is invalid: challenge was not issued by this server.]
+  +15376  ms  worker-b  402 rejected    forged challenge id presented to worker-b  [Challenge "3KvZhTY8LgSSvQ2wgnmznpmvDTYZz3ZrxJWn6lVv-SB" is invalid: challenge was not issued by this server.]
+  +16660  ms  worker-c  402 challenge   challenge from worker-c (20 second lifetime)  [Payment is required (ChargeGuard reference resource).]
+  +38189  ms  worker-c  402 rejected    present payment-3 after its challenge lapsed  [Payment expired at 2026-10-08T08:57:15.420Z.]
+  +38197  ms  worker-c  402 challenge   fresh challenge from worker-c (control)  [Payment is required (ChargeGuard reference resource).]
+  +39394  ms  worker-c  200 accepted    present payment-4 within its lifetime (control)
+
+Observations (reported, not pass/fail):
+  - Consuming a challenge does not refund or void a second payment made against it: the second
+  transaction is a separate on-chain payment that no worker delivered for. Whether that is
+  acceptable is an operator decision; the report shows it as submitted/confirmed with zero
+  fulfillments.
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================
+
+ChargeGuard run report v1
+Storage unavailable: fail closed, never fall back  (storage-unavailable)
+
+Evidence class : testnet settlement  (chain: Stellar testnet via a logging pass-through to https://soroban-testnet.stellar.org)
+Deployment     : 2 worker processes, store=sqlite, credential mode=pull
+Command        : node dist/cli.js suite --backend testnet --out docs/evidence/suite-testnet.rerun-2026-10-08.json --text-out docs/evidence/suite-testnet.rerun-2026-10-08.txt
+Environment    : node v24.19.0 on linux/x64; @stellar/mpp 0.7.1, mppx 0.6.31, @stellar/stellar-sdk 15.1.0
+Generated      : 2026-10-08T08:57:41.260Z
+
+VERDICT: PASS   (expected PASS: as expected)
+  All 10 checks passed.
+
+Invariant under test:
+  When the shared store cannot answer, a worker refuses (503) and never accepts, never delivers, and
+  never falls back to a local in-memory store; a worker with no store configuration refuses to
+  start.
+
+Fault schedule (planned):
+  1. Start a worker with no store setting, with an empty one and with an unknown backend: each must
+  exit with the configuration refusal code (78).
+  2. Start a worker pointing at a sqlite file that does not exist: it must refuse to start (70) and
+  must not create the file.
+  3. Start worker-a and worker-b on one shared sqlite file. Build a pull-mode credential.
+  4. Hold an exclusive write lock on the database from the runner, present the credential to both
+  workers (expect 503, no acceptance, no broadcast), release the lock, present again (expect it to
+  be accepted once: the failed attempts did not consume it).
+  5. Build a second credential, delete the database file under the running workers, present it
+  (expect 503 and an unhealthy /health), then try to restart a worker on the missing file (expect
+  refusal).
+
+Checks:
+  [pass] missing-store-config-refuses-to-start
+         A worker with no store configuration (unset, empty or unknown) refuses to start with exit
+         code 78.
+         -> unset: exit 78; empty: exit 78; unknown backend: exit 78 | message: chargeguard worker
+         refused to start: no store configured: set CHARGEGUARD_STORE to 'sqlite:<path>' (shared,
+         durable) or, for a demonstration of the failure, 'memory'. Refusing to start without one.
+  [pass] missing-database-refuses-to-start
+         A worker pointed at a sqlite file that does not exist refuses to start (exit 70) instead of
+         creating an empty private store.
+         -> exit 70: chargeguard worker refused to start: sqlite store file does not exist:
+         /tmp/chargeguard-run-wJRkVi/does-not-exist.db
+  [pass] locked-store-fails-closed
+         While the database is locked both workers answer 503 and accept nothing.
+         -> worker-a 503, worker-b 503 (store_unavailable (busy)).
+  [pass] locked-store-no-broadcast
+         No transaction for the credential reaches the chain while the store cannot record the
+         claim.
+         -> 0 new sendTransaction call(s) while locked.
+  [pass] locked-store-recovers
+         After the lock is released the same credential is accepted once (the failed attempts did
+         not consume it) and not twice.
+         -> after unlock: worker-b 200, then worker-a replay 402.
+  [pass] removed-store-fails-closed
+         With the database file deleted both workers answer 503 and accept nothing (no silent fall
+         back to a local map).
+         -> worker-a 503, worker-b 503.
+  [pass] removed-store-reports-unhealthy
+         The worker's health endpoint reports the store as unhealthy (503).
+         -> GET /__chargeguard/health answered 503.
+  [pass] removed-store-no-restart
+         A worker restarted against the missing database refuses to start (exit 70).
+         -> exit 70
+  [pass] single-fulfillment
+         Each payment is delivered at most once (counted from the workers' fulfillment logs).
+         -> max deliveries per payment: 1.
+  [pass] single-fulfillment-per-challenge
+         Each challenge is delivered against at most once.
+         -> no challenge was delivered more than once.
+  [pass] evidence-consistent
+         Client-observed responses match the workers' own request and fulfillment logs.
+         -> client saw 9 responses (1 accepted); workers logged 9 requests (1 accepted) and 1
+         fulfillments.
+
+Payments, with the four levels kept apart:
+  accepted: The server verified the credential and replied 200 with a receipt.
+  submitted: A transaction for the payment reached a Stellar node (by the server in pull mode, by
+  the payer in push mode).
+  confirmed: The ledger reports the transaction as SUCCESS, observed by the runner and not by the
+  worker.
+  fulfilled: The paid resource was delivered, recorded once per delivery in the worker's fulfillment
+  log.
+
+  payment    mode  accepted  submitted  confirmed  fulfilled
+  payment-1  pull  1         worker     SUCCESS    1
+  payment-2  pull  0         -          NOT_FOUND  0
+  payment-1 (c80422fc9610…): 1 worker response accepted the credential; the transaction was
+  submitted by the worker; chain: SUCCESS; the resource was delivered 1 time.
+  payment-2 (765c6cd768e9…): no worker accepted the credential; no transaction submission was
+  observed; chain: NOT_FOUND; the resource was never delivered.
+
+Broadcasts seen by the chain endpoint (sendTransaction and the node's answer):
+  +9121   ms  payment-1  PENDING     c80422fc9610…
+
+Fault and harness events:
+  +3226   ms  start-without-store worker started with CHARGEGUARD_STORE unset, empty, and set to an unknown backend
+  +5414   ms  worker-start       worker-a started as pid 72563 with store sqlite (shared file)
+  +6478   ms  worker-start       worker-b started as pid 72603 with store sqlite (shared file)
+  +7644   ms  client-signed      payer signed transaction c80422fc9610… without broadcasting (pull)
+  +7644   ms  lock-database      runner holds BEGIN EXCLUSIVE on the shared database
+  +8194   ms  unlock-database    runner released the lock
+  +15816  ms  client-signed      payer signed transaction 765c6cd768e9… without broadcasting (pull)
+  +15816  ms  remove-database    shared database file deleted while both workers keep running
+
+Timeline (client view, one line per request):
+  +6478   ms  worker-a  402 challenge   payment before the lock: request challenge from worker-a  [Payment is required (ChargeGuard reference resource).]
+  +7644   ms  worker-a  503 unavailable while locked: present payment-1 to worker-a  [store_unavailable (busy)]
+  +7910   ms  worker-b  503 unavailable while locked: present payment-1 to worker-b  [store_unavailable (busy)]
+  +8190   ms  worker-a  402 challenge   challenge request while locked (stateless, should still work)  [Payment is required (ChargeGuard reference resource).]
+  +8194   ms  worker-b  200 accepted    after unlock: present payment-1 to worker-b
+  +14797  ms  worker-a  402 rejected    after unlock, replay: present payment-1 to worker-a  [Payment verification failed.]
+  +14802  ms  worker-b  402 challenge   payment before the file is removed: request challenge from worker-b  [Payment is required (ChargeGuard reference resource).]
+  +15816  ms  worker-a  503 unavailable database removed: present payment-2 to worker-a  [store_unavailable (removed)]
+  +15821  ms  worker-b  503 unavailable database removed: present payment-2 to worker-b  [store_unavailable (removed)]
+
+Observations (reported, not pass/fail):
+  - Challenge issuance does not touch the store (the id is an HMAC), so a worker with a locked store
+  still issues challenges: it answered 402. Only verification needs the store.
+
+Limits:
+  - A finite number of runs is evidence, not a proof: this report does not show linearizability or
+  exactly-once delivery.
+  - Only the two-worker reference deployment shape of this runner was exercised, not your own server
+  code.
+  - Payment channels are out of scope.
+  - Testnet is a shared network with its own latency; a run shows what happened once.
+
+====================================================================================================

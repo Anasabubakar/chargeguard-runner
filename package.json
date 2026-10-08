@@ -1,5 +1,5 @@
 {
-  "name": "@anasabubakar/chargeguard-runner",
+  "name": "@anas.abubakar/chargeguard-runner",
   "version": "0.1.0",
   "description": "Deployment tests for Stellar MPP replay protection: two real worker processes, a shared durable atomic store, fault scenarios and evidence reports.",
   "license": "MIT",

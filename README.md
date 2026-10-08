@@ -27,7 +27,7 @@ VERDICT: FAIL   (expected FAIL: as expected)
   payment-1  push  2         client     SUCCESS    2
 ```
 
-With the shared sqlite store (below) it is accepted once: `200, 402, 402`, delivered once. The same pair against **real Stellar testnet** is recorded in [docs/evidence/suite-testnet.txt](docs/evidence/suite-testnet.txt) (transaction hashes can be looked up on any testnet explorer).
+With the shared sqlite store (below) it is accepted once: `200, 402, 402`, delivered once. The same pair against **real Stellar testnet** is recorded in [docs/evidence/suite-testnet.txt](https://github.com/Anasabubakar/chargeguard-runner/blob/main/docs/evidence/suite-testnet.txt) (transaction hashes can be looked up on any testnet explorer).
 
 ## The four levels
 
@@ -42,7 +42,7 @@ Replay protection decides the first level; the other three show what it cost. A 
 
 ## What it runs
 
-Pinned system under test: `@stellar/mpp 0.7.1`, `mppx 0.6.31`, `@stellar/stellar-sdk 15.1.0` (exact versions, see [ADR 0001](docs/adr/0001-incremental-value-over-existing-tools.md) for why these and what was read).
+Pinned system under test: `@stellar/mpp 0.7.1`, `mppx 0.6.31`, `@stellar/stellar-sdk 15.1.0` (exact versions, see [ADR 0001](https://github.com/Anasabubakar/chargeguard-runner/blob/main/docs/adr/0001-incremental-value-over-existing-tools.md) for why these and what was read).
 
 | Scenario | Invariant | Variants |
 |---|---|---|
@@ -57,7 +57,7 @@ Credential modes: **pull** (the worker verifies, broadcasts and waits for confir
 
 ## The shared durable atomic store
 
-mppx ships `memory`, `cloudflare`, `redis` and `upstash` stores. Memory is per process; Cloudflare and Upstash are hosted services; `redis` is atomic only if you supply the `update` function and a running Redis. None fits "shared, durable, atomic, no Docker, no root", so [`src/store/sqlite.ts`](src/store/sqlite.ts) implements mppx's `AtomicStore` on Node's built-in `node:sqlite` ([ADR 0002](docs/adr/0002-sqlite-store-adapter.md)):
+mppx ships `memory`, `cloudflare`, `redis` and `upstash` stores. Memory is per process; Cloudflare and Upstash are hosted services; `redis` is atomic only if you supply the `update` function and a running Redis. None fits "shared, durable, atomic, no Docker, no root", so [`src/store/sqlite.ts`](https://github.com/Anasabubakar/chargeguard-runner/blob/main/src/store/sqlite.ts) implements mppx's `AtomicStore` on Node's built-in `node:sqlite` ([ADR 0002](https://github.com/Anasabubakar/chargeguard-runner/blob/main/docs/adr/0002-sqlite-store-adapter.md)):
 
 - `update()` = `BEGIN IMMEDIATE` read-modify-write; SQLite serialises writers across processes. WAL mode, `synchronous=FULL`.
 - Fails closed: lock contention past a deadline, a deleted or replaced database file, or any I/O error raises `StoreUnavailableError`, which the worker turns into HTTP 503. It never falls back to local state.
@@ -71,10 +71,10 @@ Limit: SQLite needs a local filesystem. It is not a multi-host store and is not 
 Every report says which kind of evidence it is, and they are not mixed:
 
 - **in-process**: store and adapter tests inside one process (`test/sqlite-store.test.ts`).
-- **integration**: two worker OS processes over real HTTP against a local stub of a Soroban RPC node ([`src/chain/fake-rpc.ts`](src/chain/fake-rpc.ts)). The stub implements only what the official unsponsored charge flow calls and applies the real sequence-number rule; its confirmations are simulated.
-- **testnet settlement**: the same workers and the official client against Stellar testnet, through a logging pass-through ([ADR 0003](docs/adr/0003-stub-chain-and-testnet-tap.md)). Fault scenarios that need a controllable chain (`ambiguous-settlement`) do not run here.
+- **integration**: two worker OS processes over real HTTP against a local stub of a Soroban RPC node ([`src/chain/fake-rpc.ts`](https://github.com/Anasabubakar/chargeguard-runner/blob/main/src/chain/fake-rpc.ts)). The stub implements only what the official unsponsored charge flow calls and applies the real sequence-number rule; its confirmations are simulated.
+- **testnet settlement**: the same workers and the official client against Stellar testnet, through a logging pass-through ([ADR 0003](https://github.com/Anasabubakar/chargeguard-runner/blob/main/docs/adr/0003-stub-chain-and-testnet-tap.md)). Fault scenarios that need a controllable chain (`ambiguous-settlement`) do not run here.
 
-Recorded runs (commands, environment, planned and actual fault schedule, per-request timeline, per-payment levels, every broadcast the chain endpoint saw) are in [`docs/evidence/`](docs/evidence): `suite-stub.json|txt` and `suite-testnet.json|txt`. Stub suite: 21 runs, 16 pass, 5 fail (all five are the isolated-memory controls), 21 of 21 matched their expectation. Testnet suite: 9 runs on real Stellar testnet, 6 pass, 3 fail (isolated-memory controls), 9 of 9 matched.
+Recorded runs (commands, environment, planned and actual fault schedule, per-request timeline, per-payment levels, every broadcast the chain endpoint saw) are in [`docs/evidence/`](https://github.com/Anasabubakar/chargeguard-runner/blob/main/docs/evidence): `suite-stub.json|txt` and `suite-testnet.json|txt`. Stub suite: 21 runs, 16 pass, 5 fail (all five are the isolated-memory controls), 21 of 21 matched their expectation. Testnet suite: 9 runs on real Stellar testnet, 6 pass, 3 fail (isolated-memory controls), 9 of 9 matched.
 
 ## Run it
 
@@ -97,7 +97,7 @@ node dist/cli.js suite --backend testnet --out suite-testnet.json
 
 Exit codes: **0** every invariant held (`run`) or every run matched its expectation (`suite`); **1** an invariant was violated, or a run did not match its expectation; **2** invalid usage, unsupported combination or a report that fails `validate`; **3** inconclusive (the run could not reach the state it needed, or client and worker logs disagreed). A control run on isolated memory stores *expects* to fail: `suite` counts that as matching its expectation, `run` reports it as exit 1.
 
-Reports are versioned JSON ([`schema/report.v1.schema.json`](schema/report.v1.schema.json), [`schema/suite.v1.schema.json`](schema/suite.v1.schema.json), generated from zod with `pnpm schema`) plus a text rendering. [chargeguard-workbench](../chargeguard-workbench) renders the recorded reports in a browser.
+Reports are versioned JSON ([`schema/report.v1.schema.json`](https://github.com/Anasabubakar/chargeguard-runner/blob/main/schema/report.v1.schema.json), [`schema/suite.v1.schema.json`](https://github.com/Anasabubakar/chargeguard-runner/blob/main/schema/suite.v1.schema.json), generated from zod with `pnpm schema`) plus a text rendering. [chargeguard-workbench](https://github.com/Anasabubakar/chargeguard-runner/blob/main/chargeguard-workbench) renders the recorded reports in a browser.
 
 ## What the runs taught (observed with the pinned versions, not defects)
 
@@ -110,7 +110,7 @@ Reports are versioned JSON ([`schema/report.v1.schema.json`](schema/report.v1.sc
 
 ## Supported scope and limits
 
-Charge mode, unsponsored, testnet only; no `feePayer`, no payment channels, no mainnet. It exercises this runner's reference server (a thin wrapper on the SDK), not your own server code. The stub chain is a stub. Testnet runs are a single observation of a shared network. See [SPEC.md](SPEC.md).
+Charge mode, unsponsored, testnet only; no `feePayer`, no payment channels, no mainnet. It exercises this runner's reference server (a thin wrapper on the SDK), not your own server code. The stub chain is a stub. Testnet runs are a single observation of a shared network. See [SPEC.md](https://github.com/Anasabubakar/chargeguard-runner/blob/main/SPEC.md).
 
 ## Verification
 
